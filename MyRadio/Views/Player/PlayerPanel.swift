@@ -446,6 +446,7 @@ private struct VolumeSlider: View {
 // MARK: - Utility bar
 
 private struct UtilityBar: View {
+    @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
 
     var body: some View {
@@ -458,11 +459,25 @@ private struct UtilityBar: View {
             HStack(spacing: 8) {
                 UtilButton(icon: "slider.horizontal.3", label: "EQ", isActive: false)
                 UtilButton(icon: "bed.double", label: "Sleep", isActive: false)
-                UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: "Mini", isActive: false)
+                UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: "Mini", isActive: false, action: enterMiniMode)
                 UtilButton(icon: "square.and.arrow.up", label: nil, isActive: false)
             }
         }
         .padding(.top, 12)
+    }
+
+    private func enterMiniMode() {
+        state.isMiniMode = true
+        MiniWindowManager.shared.show(state: state)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            for window in NSApp.windows where window.contentView != nil && window.isVisible {
+                if window is NSPanel { continue }
+                if window.frame.width > AppLayout.miniWidth {
+                    window.orderOut(nil)
+                }
+            }
+        }
     }
 }
 
@@ -470,10 +485,11 @@ private struct UtilButton: View {
     let icon: String
     let label: String?
     let isActive: Bool
+    var action: (() -> Void)?
     @Environment(\.appColors) private var colors
 
     var body: some View {
-        Button {} label: {
+        Button { action?() } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 12))

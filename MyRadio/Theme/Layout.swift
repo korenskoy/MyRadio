@@ -41,4 +41,9 @@ enum AppLayout {
     static let trafficLightsY: CGFloat = 13
     static let trafficDotSize: CGFloat = 12
     static let trafficGap:     CGFloat = 8
+
+    // Mini mode
+    static let miniWidth:      CGFloat = 300
+    static let miniHeight:     CGFloat = 80
+    static let miniCoverSize:  CGFloat = 48
 }

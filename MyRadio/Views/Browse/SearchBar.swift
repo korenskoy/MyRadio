@@ -28,7 +28,7 @@ struct SearchBar: View {
             .clipShape(RoundedRectangle(cornerRadius: AppLayout.rSm))
 
             // Add station button
-            Button {} label: {
+            Button { state.showAddStation = true } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
                         .font(.system(size: 12))

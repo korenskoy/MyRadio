@@ -7,17 +7,14 @@ struct MyRadioApp: App {
     @State private var state = AppState()
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             RootView()
                 .environment(state)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
-        .commands {
-            // Оставляем все стандартные команды, включая Cmd+Q
-            // commandsRemoved() — не вызываем
-        }
+        .commands {}
     }
 }
 

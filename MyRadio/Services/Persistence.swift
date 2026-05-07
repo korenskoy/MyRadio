@@ -34,6 +34,16 @@ actor Persistence {
         save(history, to: "history.json")
     }
 
+    // MARK: - Custom stations
+
+    func loadCustomStations() -> [CustomStation] {
+        load("custom-stations.json") ?? []
+    }
+
+    func saveCustomStations(_ stations: [CustomStation]) {
+        save(stations, to: "custom-stations.json")
+    }
+
     // MARK: - Generic load/save with rolling backup
 
     private func load<T: Decodable>(_ filename: String) -> T? {

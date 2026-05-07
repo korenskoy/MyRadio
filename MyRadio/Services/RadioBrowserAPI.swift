@@ -71,6 +71,18 @@ actor RadioBrowserAPI {
         } ?? []
     }
 
+    func stationsWithGeo(limit: Int = 500) async -> [Station] {
+        var q = StationSearchQuery()
+        q.hasGeoInfo = true
+        q.limit = limit
+        q.order = .votes
+        q.reverse = true
+        q.hidebroken = true
+        return await fetch("stationsWithGeo(\(limit))") {
+            try await client.search(q)
+        } ?? []
+    }
+
     // MARK: - Metadata
 
     func tags(limit: Int = 200) async -> [NamedCount] {

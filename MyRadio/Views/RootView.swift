@@ -40,5 +40,10 @@ struct RootView: View {
                    : AppLayout.windowHeight)
         .background(colors.bgWindow)
         .environment(\.appColors, colors)
+        .sheet(isPresented: Bindable(state).showAddStation) {
+            AddStationModal()
+                .environment(state)
+                .environment(\.appColors, colors)
+        }
     }
 }

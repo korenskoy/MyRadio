@@ -21,11 +21,13 @@ final class AppState {
     // MARK: - Navigation
     var activeTab: TabKind = .discover
     var searchQuery: String = ""
+    var showAddStation = false
 
     // MARK: - Collections
     var stations: [Station] = []
     var favorites: Set<String> = []
     var history: [HistoryEntry] = []
+    var customStations: [CustomStation] = []
 
     // MARK: - Tab-specific data
     var discoverTopVoted: [Station] = []
@@ -35,6 +37,7 @@ final class AppState {
     var searchResults: [Station] = []
     var tagStations: [Station] = []
     var countryStations: [Station] = []
+    var mapStations: [Station] = []
     var apiTags: [NamedCount] = []
     var apiCountries: [NamedCount] = []
 
@@ -48,6 +51,9 @@ final class AppState {
     // MARK: - Debug panel
     var logsVisible: Bool = true
     var activeDebugTab: DebugTab = .logs
+
+    // MARK: - Mini mode
+    var isMiniMode: Bool = false
 
     // MARK: - Appearance
     var theme: AppTheme = .auto
@@ -88,8 +94,9 @@ final class AppState {
             self.api = RadioBrowserAPI(log: self.debugLog)
             self.favorites = await self.persistence.loadFavorites()
             self.history = await self.persistence.loadHistory()
+            self.customStations = await self.persistence.loadCustomStations()
 
-            self.debugLog.append(.info, "Loaded \(self.favorites.count) favorites, \(self.history.count) history entries", source: "app.boot")
+            self.debugLog.append(.info, "Loaded \(self.favorites.count) favorites, \(self.history.count) history entries, \(self.customStations.count) custom stations", source: "app.boot")
 
             await self.loadTabData(for: .discover)
         }
@@ -183,7 +190,12 @@ final class AppState {
                 apiCountries = await api.countries()
             }
 
-        case .favorites, .history, .map:
+        case .map:
+            if mapStations.isEmpty {
+                mapStations = await api.stationsWithGeo()
+            }
+
+        case .favorites, .history:
             break
         }
     }
@@ -208,6 +220,61 @@ final class AppState {
         isLoadingTab = true
         searchResults = await api.search(name: searchQuery)
         isLoadingTab = false
+    }
+
+    // MARK: - Custom stations
+
+    func addCustomStation(
+        name: String,
+        url: String,
+        country: String? = nil,
+        language: String? = nil,
+        tags: String? = nil,
+        bitrate: Int? = nil
+    ) {
+        let station = CustomStation(
+            id: UUID(),
+            name: name,
+            url: url,
+            country: country,
+            language: language,
+            tags: tags,
+            bitrate: bitrate,
+            addedAt: Date()
+        )
+        customStations.append(station)
+        Task { await persistence.saveCustomStations(customStations) }
+        debugLog.append(.info, "Added custom station: \(name)", source: "custom")
+    }
+
+    func removeCustomStation(id: UUID) {
+        customStations.removeAll { $0.id == id }
+        Task { await persistence.saveCustomStations(customStations) }
+    }
+
+    func importM3U(_ text: String) {
+        let parsed = M3UParser.parse(text)
+        guard !parsed.isEmpty else {
+            debugLog.append(.warn, "M3U import: no stations found", source: "custom")
+            return
+        }
+        customStations.append(contentsOf: parsed)
+        Task { await persistence.saveCustomStations(customStations) }
+        debugLog.append(.info, "Imported \(parsed.count) stations from M3U", source: "custom")
+    }
+
+    func customStationAsStation(_ custom: CustomStation) -> Station {
+        var dict: [String: Any] = [
+            "stationuuid": custom.id.uuidString,
+            "name": custom.name,
+            "url": custom.url,
+        ]
+        if let v = custom.tags    { dict["tags"] = v }
+        if let v = custom.language { dict["language"] = v }
+        if let v = custom.bitrate  { dict["bitrate"] = v }
+
+        let data = try! JSONSerialization.data(withJSONObject: dict)
+        return try! JSONDecoder().decode(Station.self, from: data)
     }
 
     // MARK: - History management
