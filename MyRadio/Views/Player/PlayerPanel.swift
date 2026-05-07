@@ -38,6 +38,7 @@ struct PlayerPanel: View {
 private struct CoverArtView: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
+    @State private var artworkImage: NSImage?
 
     var body: some View {
         let station = state.currentStation
@@ -55,7 +56,12 @@ private struct CoverArtView: View {
                 .shadow(color: .black.opacity(0.35), radius: 20, x: 0, y: 16)
                 .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 4)
 
-            if let station {
+            if let artworkImage {
+                Image(nsImage: artworkImage)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fill)
+            } else if let station {
                 Text(station.glyph)
                     .font(.system(size: 96, weight: .heavy, design: .default))
                     .foregroundStyle(.white.opacity(0.95))
@@ -68,7 +74,6 @@ private struct CoverArtView: View {
                     .aspectRatio(contentMode: .fill)
             }
 
-            // LIVE pill
             VStack {
                 HStack {
                     LivePill()
@@ -86,6 +91,16 @@ private struct CoverArtView: View {
         }
         .aspectRatio(1, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: AppLayout.rLg))
+        .task(id: station?.stationuuid) {
+            guard let station else {
+                artworkImage = nil
+                return
+            }
+            artworkImage = await ArtworkCache.shared.image(
+                for: station.stationuuid,
+                faviconURL: station.favicon
+            )
+        }
     }
 }
 

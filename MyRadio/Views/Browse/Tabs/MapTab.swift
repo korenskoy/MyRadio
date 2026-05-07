@@ -131,20 +131,12 @@ private struct StationCallout: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(
-                        LinearGradient(
-                            colors: [station.gradientColors.0, station.gradientColors.1],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                Text(station.glyph)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 36, height: 36)
+            StationArtwork(
+                station: station,
+                size: 36,
+                cornerRadius: 6,
+                glyphSize: 14
+            )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(station.name)

@@ -66,26 +66,22 @@ private struct MiniCoverView: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        let station = state.currentStation
-        let (c1, c2) = station?.gradientColors ?? (Color.gray, Color.black)
-
-        ZStack {
+        if let station = state.currentStation {
+            StationArtwork(
+                station: station,
+                size: AppLayout.miniCoverSize,
+                cornerRadius: AppLayout.rSm,
+                glyphSize: 22
+            )
+        } else {
             RoundedRectangle(cornerRadius: AppLayout.rSm)
-                .fill(
-                    LinearGradient(
-                        colors: [c1, c2],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            if let station {
-                Text(station.glyph)
-                    .font(.system(size: 22, weight: .heavy))
-                    .foregroundStyle(.white.opacity(0.9))
-            }
+                .fill(LinearGradient(
+                    colors: [Color.gray, Color.black],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .frame(width: AppLayout.miniCoverSize, height: AppLayout.miniCoverSize)
         }
-        .frame(width: AppLayout.miniCoverSize, height: AppLayout.miniCoverSize)
     }
 }
 

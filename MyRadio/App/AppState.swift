@@ -7,7 +7,7 @@ final class AppState {
     let debugLog = DebugLog()
     let streamPlayer = StreamPlayer()
     private let persistence = Persistence()
-    private var api: RadioBrowserAPI?
+    private var cache: StationCache?
 
     // MARK: - Playback
     var currentStation: Station?
@@ -91,7 +91,8 @@ final class AppState {
 
         Task { @MainActor [weak self] in
             guard let self else { return }
-            self.api = RadioBrowserAPI(log: self.debugLog)
+            let api = RadioBrowserAPI(log: self.debugLog)
+            self.cache = StationCache(api: api, log: self.debugLog)
             self.favorites = await self.persistence.loadFavorites()
             self.history = await self.persistence.loadHistory()
             self.customStations = await self.persistence.loadCustomStations()
@@ -118,7 +119,7 @@ final class AppState {
         streamPlayer.play(url: url)
 
         Task {
-            await api?.registerClick(stationUUID: station.stationuuid)
+            await cache?.registerClick(stationUUID: station.stationuuid)
         }
     }
 
@@ -143,7 +144,7 @@ final class AppState {
     }
 
     func vote(for station: Station) {
-        Task { await api?.registerVote(stationUUID: station.stationuuid) }
+        Task { await cache?.registerVote(stationUUID: station.stationuuid) }
     }
 
     func appColors(systemDark: Bool) -> AppColors {
@@ -153,14 +154,14 @@ final class AppState {
     // MARK: - Tab data loading
 
     func loadTabData(for tab: TabKind) async {
-        guard let api else { return }
+        guard let cache else { return }
         isLoadingTab = true
         defer { isLoadingTab = false }
 
         switch tab {
         case .discover:
-            async let top = api.topVoted(50)
-            async let pop = api.topClicked(50)
+            async let top = cache.topVoted(50)
+            async let pop = cache.topClicked(50)
             discoverTopVoted = await top
             discoverPopular = await pop
             if stations.isEmpty {
@@ -168,31 +169,31 @@ final class AppState {
             }
 
         case .topVoted:
-            topVotedStations = await api.topVoted(200)
+            topVotedStations = await cache.topVoted(200)
 
         case .popular:
-            popularStations = await api.topClicked(200)
+            popularStations = await cache.topClicked(200)
 
         case .search:
             guard !searchQuery.isEmpty else {
                 searchResults = []
                 return
             }
-            searchResults = await api.search(name: searchQuery)
+            searchResults = await cache.search(name: searchQuery)
 
         case .tags:
             if apiTags.isEmpty {
-                apiTags = await api.tags()
+                apiTags = await cache.tags()
             }
 
         case .countries:
             if apiCountries.isEmpty {
-                apiCountries = await api.countries()
+                apiCountries = await cache.countries()
             }
 
         case .map:
             if mapStations.isEmpty {
-                mapStations = await api.stationsWithGeo()
+                mapStations = await cache.stationsWithGeo()
             }
 
         case .favorites, .history:
@@ -201,24 +202,24 @@ final class AppState {
     }
 
     func loadStationsForTag(_ tag: String) async {
-        guard let api else { return }
+        guard let cache else { return }
         selectedTag = tag
-        tagStations = await api.stationsByTag(tag)
+        tagStations = await cache.stationsByTag(tag)
     }
 
     func loadStationsForCountry(_ name: String) async {
-        guard let api else { return }
+        guard let cache else { return }
         selectedCountryCode = name
-        countryStations = await api.stationsByCountry(name)
+        countryStations = await cache.stationsByCountry(name)
     }
 
     func performSearch() async {
-        guard let api, !searchQuery.isEmpty else {
+        guard let cache, !searchQuery.isEmpty else {
             searchResults = []
             return
         }
         isLoadingTab = true
-        searchResults = await api.search(name: searchQuery)
+        searchResults = await cache.search(name: searchQuery)
         isLoadingTab = false
     }
 

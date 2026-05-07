@@ -15,8 +15,6 @@ struct StationRow: View {
     @State private var isHovered = false
 
     var body: some View {
-        let (c1, c2) = station.gradientColors
-
         HStack(spacing: AppLayout.rowGap) {
             Group {
                 if let time = timeLabel {
@@ -38,21 +36,12 @@ struct StationRow: View {
             .frame(width: AppLayout.rowNumWidth, alignment: .trailing)
             .monospacedDigit()
 
-            // Cover
-            RoundedRectangle(cornerRadius: 6)
-                .fill(
-                    LinearGradient(
-                        colors: [c1, c2],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: AppLayout.coverSize, height: AppLayout.coverSize)
-                .overlay(
-                    Text(station.glyph)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.white)
-                )
+            StationArtwork(
+                station: station,
+                size: AppLayout.coverSize,
+                cornerRadius: 6,
+                glyphSize: 16
+            )
 
             // Info
             VStack(alignment: .leading, spacing: 3) {
