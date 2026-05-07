@@ -1,0 +1,14 @@
+{
+  "originHash" : "2128921e5df0320d2722eca2844363b044a64b6919a4added684f08e8e4f61a6",
+  "pins" : [
+    {
+      "identity" : "radiobrowserkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/PankajGaikar/RadioBrowserKit.git",
+      "state" : {
+        "revision" : "cc9fbd472453ac2ffa6c560a776ecb6d67ea850d"
+      }
+    }
+  ],
+  "version" : 3
+}
