@@ -15,9 +15,9 @@ extension Station {
         ?? []
     }
 
-    // Deterministic gradient pair from stationuuid
     var gradientColors: (Color, Color) {
-        gradientPair(seed: stationuuid)
+        let pair = stationGradients[stationuuid] ?? gradientPair(seed: stationuuid)
+        return pair
     }
 
     var bitrateFormatted: String? {
@@ -35,6 +35,11 @@ extension Station {
         return "\(v)"
     }
 
+    var votesLocalized: String {
+        guard let v = votes else { return "0" }
+        return v.formatted()
+    }
+
     var countryFlag: String {
         guard let code = countrycode, code.count == 2 else { return "" }
         return code.uppercased().unicodeScalars
@@ -42,19 +47,41 @@ extension Station {
             .map(String.init)
             .joined()
     }
+
+    var countryName: String {
+        guard let code = countrycode, code.count == 2 else { return "Custom" }
+        return Locale.current.localizedString(forRegionCode: code) ?? code
+    }
 }
 
-// MARK: - Color hash
+// MARK: - Per-station gradient colors (from data.js cover field)
+
+private let stationGradients: [String: (Color, Color)] = [
+    "a1":  (Color(hex: 0xE85D75), Color(hex: 0x2D1B3A)),
+    "a2":  (Color(hex: 0xFF4040), Color(hex: 0x1A1A1A)),
+    "a3":  (Color(hex: 0x0066CC), Color(hex: 0x001A33)),
+    "a4":  (Color(hex: 0x000000), Color(hex: 0x222222)),
+    "a5":  (Color(hex: 0x7CBA47), Color(hex: 0x1A3320)),
+    "a6":  (Color(hex: 0xD4751C), Color(hex: 0x3D1D05)),
+    "a7":  (Color(hex: 0x1A73E8), Color(hex: 0x0A1A3A)),
+    "a8":  (Color(hex: 0x444444), Color(hex: 0x1A1A1A)),
+    "a9":  (Color(hex: 0xFF7A40), Color(hex: 0x3A1A05)),
+    "a10": (Color(hex: 0xFF2D8E), Color(hex: 0x220A14)),
+    "a11": (Color(hex: 0x0A0A0A), Color(hex: 0x2D2D2D)),
+    "a12": (Color(hex: 0xFBBF24), Color(hex: 0x3D2A05)),
+]
+
+// MARK: - Fallback gradient hash
 
 private let gradientPalette: [(UInt32, UInt32)] = [
-    (0x8B3A5E, 0x3A1A4A),  // maroon → deep purple
-    (0x2E6B8A, 0x1A3A4A),  // teal → dark blue
-    (0x6B4A2E, 0x3A2A1A),  // warm brown → dark brown
-    (0x3A6B4A, 0x1A3A2E),  // forest → dark green
-    (0x6B3A6B, 0x2E1A3A),  // plum → dark violet
-    (0x8A5E2E, 0x4A2E1A),  // amber → dark amber
-    (0x2E5E8A, 0x1A2E4A),  // steel blue → dark navy
-    (0x6B5E2E, 0x3A2E1A),  // olive → dark olive
+    (0x8B3A5E, 0x3A1A4A),
+    (0x2E6B8A, 0x1A3A4A),
+    (0x6B4A2E, 0x3A2A1A),
+    (0x3A6B4A, 0x1A3A2E),
+    (0x6B3A6B, 0x2E1A3A),
+    (0x8A5E2E, 0x4A2E1A),
+    (0x2E5E8A, 0x1A2E4A),
+    (0x6B5E2E, 0x3A2E1A),
 ]
 
 private func gradientPair(seed: String) -> (Color, Color) {

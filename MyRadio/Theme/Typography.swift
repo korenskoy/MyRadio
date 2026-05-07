@@ -21,7 +21,7 @@ enum Typography {
     static let mono           = Font.system(size: 12, weight: .regular, design: .monospaced)
     static let monoSm         = Font.system(size: 11, weight: .regular, design: .monospaced)
     // Glyph in cover art
-    static let coverGlyph     = Font.system(size: 60, weight: .bold, design: .default)
+    static let coverGlyph     = Font.system(size: 96, weight: .heavy, design: .default)
     // Volume value
     static let volume         = Font.system(size: 12, weight: .regular, design: .monospaced)
     // Utility bar buttons
@@ -31,6 +31,6 @@ enum Typography {
     // Country / tag count
     static let countLg        = Font.system(size: 18, weight: .semibold, design: .monospaced)
     // Debug log
-    static let debugLog       = Font.system(size: 11, weight: .regular, design: .monospaced)
+    static let debugLog       = Font.system(size: 11.5, weight: .regular, design: .monospaced)
     static let debugLabel     = Font.system(size: 10, weight: .bold)
 }

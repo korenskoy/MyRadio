@@ -34,10 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
         window.styleMask.insert(.fullSizeContentView)
-        // Фиксированный размер
+        let expandedHeight = AppLayout.windowHeight + AppLayout.debugHeight
         window.minSize = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
-        window.maxSize = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
-        // Убираем кнопку zoom (resize) из интерфейса — не нужна при фиксированном размере
+        window.maxSize = NSSize(width: AppLayout.windowWidth, height: expandedHeight)
         window.standardWindowButton(.zoomButton)?.isEnabled = false
     }
 }

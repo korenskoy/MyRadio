@@ -9,7 +9,7 @@ enum AppLayout {
 
     // Panels
     static let playerWidth:    CGFloat = 420
-    static let debugHeight:    CGFloat = 134
+    static let debugHeight:    CGFloat = 240
 
     // Player padding
     static let playerPaddingH: CGFloat = 26

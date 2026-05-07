@@ -7,7 +7,7 @@ final class AppState {
     var currentStation: Station?
     var isPlaying: Bool = false
     var volume: Double = 0.65
-    var nowPlayingTitle: String? = nil   // filled by ICY in Этапе 4
+    var nowPlayingTitle: String? = "Alice Coltrane — Journey in Satchidananda"
 
     // MARK: - Navigation
     var activeTab: TabKind = .discover
@@ -15,7 +15,7 @@ final class AppState {
 
     // MARK: - Collections (loaded from Persistence in Этапе 3)
     var stations: [Station] = MockData.stations
-    var favorites: Set<String> = []      // stationuuid
+    var favorites: Set<String> = MockData.defaultFavorites
     var history: [HistoryEntry] = MockData.history
 
     // MARK: - Debug panel
@@ -66,5 +66,10 @@ final class AppState {
 
     func appColors(systemDark: Bool) -> AppColors {
         AppColors.make(theme: theme, accent: accent, systemDark: systemDark)
+    }
+
+    init() {
+        currentStation = MockData.stations.first
+        isPlaying = true
     }
 }

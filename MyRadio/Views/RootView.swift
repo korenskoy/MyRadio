@@ -25,7 +25,7 @@ struct RootView: View {
                     BrowsePanel()
                         .frame(maxWidth: .infinity)
                 }
-                .frame(height: AppLayout.contentHeight - (state.logsVisible ? AppLayout.debugHeight : 0))
+                .frame(height: AppLayout.contentHeight)
 
                 // Debug panel
                 if state.logsVisible {
@@ -34,7 +34,10 @@ struct RootView: View {
                 }
             }
         }
-        .frame(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
+        .frame(width: AppLayout.windowWidth,
+               height: state.logsVisible
+                   ? AppLayout.windowHeight + AppLayout.debugHeight
+                   : AppLayout.windowHeight)
         .background(colors.bgWindow)
         .environment(\.appColors, colors)
     }
