@@ -6,21 +6,26 @@ struct DiscoverTab: View {
     @Environment(\.appColors) private var colors
 
     var body: some View {
-        let top = Array(state.stations.prefix(4))
-        let popular = Array(state.stations.dropFirst(4).prefix(4))
+        let top = Array(state.discoverTopVoted.prefix(8))
+        let popular = Array(state.discoverPopular.prefix(8))
 
         VStack(alignment: .leading, spacing: 0) {
-            StationListSection(
-                title: "Trending in Jazz",
-                subtitle: "Curated · updated 2m ago",
-                stations: top
-            )
+            if top.isEmpty && popular.isEmpty {
+                ContentUnavailableView("Loading stations…", systemImage: "antenna.radiowaves.left.and.right")
+                    .frame(maxWidth: .infinity, minHeight: 200)
+            } else {
+                StationListSection(
+                    title: "Top Voted",
+                    subtitle: "radio-browser.info · live",
+                    stations: top
+                )
 
-            StationListSection(
-                title: "Because you played NTS Radio",
-                subtitle: "Recommendation",
-                stations: popular
-            )
+                StationListSection(
+                    title: "Most Popular",
+                    subtitle: "By click count",
+                    stations: popular
+                )
+            }
         }
     }
 }

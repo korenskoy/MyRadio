@@ -47,13 +47,14 @@ struct BrowseButton: View {
     let label: String
     var icon: String? = nil
     var style: ButtonKind = .normal
+    var action: () -> Void = {}
     @Environment(\.appColors) private var colors
     @State private var hovered = false
 
     enum ButtonKind { case normal, primary, ghost }
 
     var body: some View {
-        Button {} label: {
+        Button(action: action) {
             HStack(spacing: 6) {
                 if let icon {
                     Image(systemName: icon)

@@ -55,11 +55,18 @@ private struct CoverArtView: View {
                 .shadow(color: .black.opacity(0.35), radius: 20, x: 0, y: 16)
                 .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 4)
 
-            Text(station?.glyph ?? "♪")
-                .font(.system(size: 96, weight: .heavy, design: .default))
-                .foregroundStyle(.white.opacity(0.95))
-                .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 4)
-                .tracking(-3)
+            if let station {
+                Text(station.glyph)
+                    .font(.system(size: 96, weight: .heavy, design: .default))
+                    .foregroundStyle(.white.opacity(0.95))
+                    .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 4)
+                    .tracking(-3)
+            } else {
+                Image("CoverDefault")
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fill)
+            }
 
             // LIVE pill
             VStack {
@@ -429,7 +436,7 @@ private struct VolumeSlider: View {
             }
             .frame(height: geo.size.height)
             .contentShape(Rectangle())
-            .gesture(
+            .highPriorityGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         state.volume = max(0, min(1, value.location.x / width))

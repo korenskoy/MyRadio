@@ -5,27 +5,25 @@ struct SearchTab: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
 
-    private var filtered: [Station] {
-        let q = state.searchQuery.lowercased()
-        guard !q.isEmpty else { return state.stations }
-        return state.stations.filter { station in
-            station.name.lowercased().contains(q) ||
-            station.tagList.contains(where: { $0.lowercased().contains(q) }) ||
-            (station.countrycode?.lowercased().contains(q) ?? false)
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ToolbarRow(subtitle: state.searchQuery.isEmpty
-                       ? "\(state.stations.count) stations"
-                       : "\(filtered.count) results for \"\(state.searchQuery)\"") {
+                       ? "Type to search radio-browser.info"
+                       : "\(state.searchResults.count) results for \"\(state.searchQuery)\"") {
                 BrowseButton(label: "Filter", icon: "line.3.horizontal.decrease")
                 TagPill(text: "codec: any")
                 TagPill(text: "bitrate: ≥128")
             }
 
-            StationListSection(stations: filtered)
+            if state.searchResults.isEmpty && !state.searchQuery.isEmpty && !state.isLoadingTab {
+                ContentUnavailableView.search(text: state.searchQuery)
+                    .frame(maxWidth: .infinity, minHeight: 200)
+            } else {
+                StationListSection(stations: state.searchResults)
+            }
+        }
+        .onChange(of: state.searchQuery) { _, _ in
+            Task { await state.performSearch() }
         }
     }
 }

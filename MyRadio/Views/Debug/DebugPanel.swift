@@ -1,4 +1,5 @@
 import SwiftUI
+import RadioBrowserKit
 
 struct DebugPanel: View {
     @Environment(AppState.self) private var state
@@ -63,10 +64,10 @@ struct DebugPanel: View {
 
     private func badgeCount(for tab: DebugTab) -> Int? {
         switch tab {
-        case .logs:    return MockDebug.logs.count
+        case .logs:    return state.debugLog.entries.count
         case .network: return MockDebug.network.count
         case .stream:  return nil
-        case .icy:     return nil
+        case .icy:     return state.streamPlayer.icyMetadata.isEmpty ? nil : state.streamPlayer.icyMetadata.count
         case .servers: return MockDebug.servers.count
         }
     }
@@ -76,7 +77,9 @@ struct DebugPanel: View {
             debugActionButton("line.3.horizontal.decrease")
             debugActionButton("doc.on.doc")
             debugActionButton("arrow.down.doc")
-            debugActionButton("trash")
+            debugActionButton("trash") {
+                state.debugLog.clear()
+            }
             debugActionButton("chevron.down") {
                 state.logsVisible = false
             }
@@ -159,11 +162,12 @@ private struct DebugTabButton: View {
     }
 }
 
-// MARK: - Logs tab
+// MARK: - Logs tab (real data from DebugLog)
 
 private struct LogsTabView: View {
+    @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
-    @State private var levelFilter: LogLine.LogLevel? = nil
+    @State private var levelFilter: LogEntry.Level? = nil
     @State private var searchText = ""
     @State private var autoScroll = true
 
@@ -242,7 +246,7 @@ private struct LogsTabView: View {
         .frame(height: 28)
     }
 
-    private var filterOptions: [(label: String, level: LogLine.LogLevel?)] {
+    private var filterOptions: [(label: String, level: LogEntry.Level?)] {
         [
             ("all", nil),
             ("info", .info),
@@ -252,13 +256,13 @@ private struct LogsTabView: View {
         ]
     }
 
-    private var filteredLogs: [LogLine] {
-        MockDebug.logs.filter { line in
-            if let filter = levelFilter, line.level != filter { return false }
+    private var filteredLogs: [LogEntry] {
+        state.debugLog.entries.filter { entry in
+            if let filter = levelFilter, entry.level != filter { return false }
             if !searchText.isEmpty {
                 let q = searchText.lowercased()
-                return line.message.lowercased().contains(q)
-                    || line.source.lowercased().contains(q)
+                return entry.message.lowercased().contains(q)
+                    || entry.source.lowercased().contains(q)
             }
             return true
         }
@@ -267,30 +271,30 @@ private struct LogsTabView: View {
     private var logList: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                ForEach(filteredLogs) { line in
-                    logRow(line)
+                ForEach(filteredLogs) { entry in
+                    logRow(entry)
                 }
             }
         }
     }
 
-    private func logRow(_ line: LogLine) -> some View {
+    private func logRow(_ entry: LogEntry) -> some View {
         HStack(spacing: 12) {
-            Text(line.time)
+            Text(entry.time)
                 .font(.system(size: 10.5, design: .monospaced))
                 .foregroundStyle(colors.fgDebug2)
                 .frame(width: 88, alignment: .leading)
                 .lineLimit(1)
 
-            levelBadge(line.level)
+            levelBadge(entry.level)
                 .frame(width: 50, alignment: .center)
 
             HStack(spacing: 0) {
-                Text(line.message)
+                Text(entry.message)
                     .font(Typography.debugLog)
                     .foregroundStyle(colors.fgDebug)
                     .lineLimit(1)
-                Text(line.source)
+                Text(entry.source)
                     .font(.system(size: 10.5, design: .monospaced))
                     .foregroundStyle(colors.fgDebug2)
                     .padding(.leading, 8)
@@ -308,7 +312,7 @@ private struct LogsTabView: View {
         }
     }
 
-    private func levelBadge(_ level: LogLine.LogLevel) -> some View {
+    private func levelBadge(_ level: LogEntry.Level) -> some View {
         Text(level.rawValue.uppercased())
             .font(.system(size: 9.5, weight: .bold, design: .monospaced))
             .tracking(0.4)
@@ -318,7 +322,7 @@ private struct LogsTabView: View {
             .background(levelColor(level).opacity(0.18), in: RoundedRectangle(cornerRadius: 3))
     }
 
-    private func levelColor(_ level: LogLine.LogLevel) -> Color {
+    private func levelColor(_ level: LogEntry.Level) -> Color {
         switch level {
         case .info:  return colors.statusInfo
         case .warn:  return colors.statusWarn
@@ -327,7 +331,7 @@ private struct LogsTabView: View {
         }
     }
 
-    private func levelFg(_ level: LogLine.LogLevel) -> Color {
+    private func levelFg(_ level: LogEntry.Level) -> Color {
         switch level {
         case .info:  return colors.statusInfo
         case .warn:  return colors.statusWarn
@@ -337,7 +341,7 @@ private struct LogsTabView: View {
     }
 }
 
-// MARK: - Network tab
+// MARK: - Network tab (mock for now)
 
 private struct NetworkTabView: View {
     @Environment(\.appColors) private var colors
@@ -448,24 +452,25 @@ private struct NetworkTabView: View {
     }
 }
 
-// MARK: - Stream tab
+// MARK: - Stream tab (real data from StreamPlayer)
 
 private struct StreamTabView: View {
+    @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 4)
 
     var body: some View {
+        let player = state.streamPlayer
+        let station = state.currentStation
+
         ScrollView {
             LazyVGrid(columns: columns, spacing: 12) {
-                statCard(title: "Bitrate", value: "128", unit: "kbps")
-                statCard(title: "Codec", value: "MP3", detail: "44.1 kHz · 2ch")
-                meterCard(title: "Buffer", value: "8.2", unit: "s", fill: 0.82, color: colors.accent.accent)
-                meterCard(title: "Latency", value: "142", unit: "ms", fill: 0.30, color: colors.statusOk)
-                statCard(title: "Reconnects", value: "2", unit: nil)
-                statCard(title: "Data received", value: "12.4", unit: "MB")
-                statCard(title: "Drops", value: "0", unit: nil)
-                urlCard(title: "Stream URL", url: "https://stream.radiofrance.fr/fip/fip.m3u8")
+                statCard(title: "Bitrate", value: player.currentBitrate > 0 ? String(format: "%.0f", player.currentBitrate) : "—", unit: "kbps")
+                statCard(title: "Codec", value: station?.codec?.uppercased() ?? "—", detail: "44.1 kHz · 2ch")
+                meterCard(title: "Buffer", value: String(format: "%.1f", player.bufferHealth), unit: "s", fill: min(1, player.bufferHealth / 10), color: colors.accent.accent)
+                statCard(title: "Status", value: player.isPlaying ? "Playing" : "Stopped", unit: nil)
+                urlCard(title: "Stream URL", url: station?.urlResolved ?? station?.url ?? "—")
             }
             .padding(12)
         }
@@ -551,24 +556,23 @@ private struct StreamTabView: View {
     }
 }
 
-// MARK: - ICY metadata tab
+// MARK: - ICY metadata tab (real data from StreamPlayer)
 
 private struct ICYTabView: View {
+    @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
 
     var body: some View {
+        let meta = state.streamPlayer.icyMetadata
+
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 6) {
-                    Text("Last frame")
+                    Text("ICY metadata")
                         .foregroundStyle(colors.fgDebug)
                     Text("·")
                         .foregroundStyle(colors.fgDebug2)
-                    Text("14:48:02.412")
-                        .foregroundStyle(colors.fgDebug2)
-                    Text("·")
-                        .foregroundStyle(colors.fgDebug2)
-                    Text("refresh interval 16000 bytes")
+                    Text(meta.isEmpty ? "No stream active" : "\(meta.count) fields")
                         .foregroundStyle(colors.fgDebug2)
                 }
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -577,22 +581,29 @@ private struct ICYTabView: View {
 
                 Divider().overlay(colors.borderDebug)
 
-                ForEach(Array(MockDebug.icyData.enumerated()), id: \.offset) { _, pair in
-                    HStack(spacing: 0) {
-                        Text(pair.key)
-                            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                            .foregroundStyle(colors.statusInfo)
-                            .frame(width: 140, alignment: .leading)
+                if meta.isEmpty {
+                    Text("Start playing a station to see ICY metadata")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(colors.fgDebug2)
+                        .frame(maxWidth: .infinity, minHeight: 80)
+                } else {
+                    ForEach(meta.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                        HStack(spacing: 0) {
+                            Text(key)
+                                .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                                .foregroundStyle(colors.statusInfo)
+                                .frame(width: 140, alignment: .leading)
 
-                        Text(pair.value)
-                            .font(.system(size: 10.5, design: .monospaced))
-                            .foregroundStyle(colors.fgDebug)
-                            .lineLimit(1)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .overlay(alignment: .bottom) {
-                        Rectangle().fill(colors.borderDebug).frame(height: 0.5)
+                            Text(value)
+                                .font(.system(size: 10.5, design: .monospaced))
+                                .foregroundStyle(colors.fgDebug)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .overlay(alignment: .bottom) {
+                            Rectangle().fill(colors.borderDebug).frame(height: 0.5)
+                        }
                     }
                 }
             }
@@ -602,7 +613,7 @@ private struct ICYTabView: View {
     }
 }
 
-// MARK: - Servers tab
+// MARK: - Servers tab (mock for now)
 
 private struct ServersTabView: View {
     @Environment(\.appColors) private var colors

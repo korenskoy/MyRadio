@@ -11,7 +11,12 @@ struct BrowsePanel: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    tabContent
+                    if state.isLoadingTab {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, minHeight: 100)
+                    } else {
+                        tabContent
+                    }
                 }
                 .padding(.horizontal, 22)
                 .padding(.top, 16)
@@ -19,6 +24,9 @@ struct BrowsePanel: View {
             }
         }
         .background(colors.bgWindow)
+        .onChange(of: state.activeTab) { _, newTab in
+            Task { await state.loadTabData(for: newTab) }
+        }
     }
 
     @ViewBuilder

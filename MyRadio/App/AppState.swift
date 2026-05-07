@@ -3,20 +3,47 @@ import RadioBrowserKit
 
 @Observable
 final class AppState {
+    // MARK: - Services
+    let debugLog = DebugLog()
+    let streamPlayer = StreamPlayer()
+    private let persistence = Persistence()
+    private var api: RadioBrowserAPI?
+
     // MARK: - Playback
     var currentStation: Station?
-    var isPlaying: Bool = false
-    var volume: Double = 0.65
-    var nowPlayingTitle: String? = "Alice Coltrane — Journey in Satchidananda"
+    var isPlaying: Bool { streamPlayer.isPlaying }
+    var volume: Double {
+        get { Double(streamPlayer.volume) }
+        set { streamPlayer.volume = Float(newValue) }
+    }
+    var nowPlayingTitle: String? { streamPlayer.nowPlayingTitle }
 
     // MARK: - Navigation
     var activeTab: TabKind = .discover
     var searchQuery: String = ""
 
-    // MARK: - Collections (loaded from Persistence in Этапе 3)
-    var stations: [Station] = MockData.stations
-    var favorites: Set<String> = MockData.defaultFavorites
-    var history: [HistoryEntry] = MockData.history
+    // MARK: - Collections
+    var stations: [Station] = []
+    var favorites: Set<String> = []
+    var history: [HistoryEntry] = []
+
+    // MARK: - Tab-specific data
+    var discoverTopVoted: [Station] = []
+    var discoverPopular: [Station] = []
+    var topVotedStations: [Station] = []
+    var popularStations: [Station] = []
+    var searchResults: [Station] = []
+    var tagStations: [Station] = []
+    var countryStations: [Station] = []
+    var apiTags: [NamedCount] = []
+    var apiCountries: [NamedCount] = []
+
+    // MARK: - Loading states
+    var isLoadingTab = false
+
+    // MARK: - Tag/Country selection
+    var selectedTag: String?
+    var selectedCountryCode: String?
 
     // MARK: - Debug panel
     var logsVisible: Bool = true
@@ -25,6 +52,9 @@ final class AppState {
     // MARK: - Appearance
     var theme: AppTheme = .auto
     var accent: AccentName = .green
+
+    // MARK: - History tracking
+    private var playStartTime: Date?
 
     // MARK: - Computed
 
@@ -38,22 +68,62 @@ final class AppState {
     }
 
     var favoriteStations: [Station] {
-        stations.filter { favorites.contains($0.stationuuid) }
+        let allStations = stations + discoverTopVoted + discoverPopular + topVotedStations + popularStations
+        let unique = Dictionary(allStations.map { ($0.stationuuid, $0) }, uniquingKeysWith: { first, _ in first })
+        return favorites.compactMap { unique[$0] }
     }
 
     func isFavorite(_ station: Station) -> Bool {
         favorites.contains(station.stationuuid)
     }
 
+    // MARK: - Init
+
+    init() {
+        streamPlayer.configure(log: debugLog)
+        debugLog.append(.info, "Application started · MyRadio v1.0.0", source: "app.boot")
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.api = RadioBrowserAPI(log: self.debugLog)
+            self.favorites = await self.persistence.loadFavorites()
+            self.history = await self.persistence.loadHistory()
+
+            self.debugLog.append(.info, "Loaded \(self.favorites.count) favorites, \(self.history.count) history entries", source: "app.boot")
+
+            await self.loadTabData(for: .discover)
+        }
+    }
+
     // MARK: - Actions
 
     func play(_ station: Station) {
+        recordHistoryForCurrentStation()
+
         currentStation = station
-        isPlaying = true
+        playStartTime = Date()
+
+        guard let url = URL(string: station.urlResolved ?? station.url) else {
+            debugLog.append(.error, "Invalid stream URL for \(station.name)", source: "audio.player")
+            return
+        }
+
+        streamPlayer.play(url: url)
+
+        Task {
+            await api?.registerClick(stationUUID: station.stationuuid)
+        }
     }
 
     func togglePlayPause() {
-        isPlaying.toggle()
+        streamPlayer.togglePlayPause()
+    }
+
+    func stopPlayback() {
+        recordHistoryForCurrentStation()
+        streamPlayer.stop()
+        currentStation = nil
+        playStartTime = nil
     }
 
     func toggleFavorite(_ station: Station) {
@@ -62,14 +132,107 @@ final class AppState {
         } else {
             favorites.insert(station.stationuuid)
         }
+        Task { await persistence.saveFavorites(favorites) }
+    }
+
+    func vote(for station: Station) {
+        Task { await api?.registerVote(stationUUID: station.stationuuid) }
     }
 
     func appColors(systemDark: Bool) -> AppColors {
         AppColors.make(theme: theme, accent: accent, systemDark: systemDark)
     }
 
-    init() {
-        currentStation = MockData.stations.first
-        isPlaying = true
+    // MARK: - Tab data loading
+
+    func loadTabData(for tab: TabKind) async {
+        guard let api else { return }
+        isLoadingTab = true
+        defer { isLoadingTab = false }
+
+        switch tab {
+        case .discover:
+            async let top = api.topVoted(50)
+            async let pop = api.topClicked(50)
+            discoverTopVoted = await top
+            discoverPopular = await pop
+            if stations.isEmpty {
+                stations = discoverTopVoted
+            }
+
+        case .topVoted:
+            topVotedStations = await api.topVoted(200)
+
+        case .popular:
+            popularStations = await api.topClicked(200)
+
+        case .search:
+            guard !searchQuery.isEmpty else {
+                searchResults = []
+                return
+            }
+            searchResults = await api.search(name: searchQuery)
+
+        case .tags:
+            if apiTags.isEmpty {
+                apiTags = await api.tags()
+            }
+
+        case .countries:
+            if apiCountries.isEmpty {
+                apiCountries = await api.countries()
+            }
+
+        case .favorites, .history, .map:
+            break
+        }
+    }
+
+    func loadStationsForTag(_ tag: String) async {
+        guard let api else { return }
+        selectedTag = tag
+        tagStations = await api.stationsByTag(tag)
+    }
+
+    func loadStationsForCountry(_ name: String) async {
+        guard let api else { return }
+        selectedCountryCode = name
+        countryStations = await api.stationsByCountry(name)
+    }
+
+    func performSearch() async {
+        guard let api, !searchQuery.isEmpty else {
+            searchResults = []
+            return
+        }
+        isLoadingTab = true
+        searchResults = await api.search(name: searchQuery)
+        isLoadingTab = false
+    }
+
+    // MARK: - History management
+
+    private func recordHistoryForCurrentStation() {
+        guard let station = currentStation,
+              let start = playStartTime else { return }
+
+        let duration = Date().timeIntervalSince(start)
+        guard duration > 10 else { return }
+
+        let entry = HistoryEntry(
+            id: UUID(),
+            stationUUID: station.stationuuid,
+            stationName: station.name,
+            playedAt: start,
+            duration: duration
+        )
+        history.insert(entry, at: 0)
+
+        let maxHistory = 500
+        if history.count > maxHistory {
+            history = Array(history.prefix(maxHistory))
+        }
+
+        Task { await persistence.saveHistory(history) }
     }
 }

@@ -4,71 +4,78 @@ import RadioBrowserKit
 struct TagsTab: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
-    @State private var selectedTag: String? = nil
 
-    private var sortedTags: [(name: String, count: Int)] {
-        MockData.tags.sorted { $0.count > $1.count }
+    private var sortedTags: [NamedCount] {
+        state.apiTags.sorted { $0.stationcount > $1.stationcount }
     }
 
-    private var maxCount: Int { sortedTags.first?.count ?? 1 }
-    private var minCount: Int { sortedTags.last?.count ?? 0 }
+    private var maxCount: Int { sortedTags.first?.stationcount ?? 1 }
+    private var minCount: Int { sortedTags.last?.stationcount ?? 0 }
 
     private func fontSize(for count: Int) -> CGFloat {
         let t = Double(count - minCount) / max(1, Double(maxCount - minCount))
         return 11 + t * 8
     }
 
-    private var filteredStations: [Station] {
-        guard let tag = selectedTag else { return [] }
-        return state.stations.filter { $0.tagList.contains(tag) }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ToolbarRow(subtitle: "\(MockData.tags.count) tags · sorted by station count") {
+            ToolbarRow(subtitle: "\(state.apiTags.count) tags · sorted by station count") {
                 Button {
-                    selectedTag = nil
+                    state.selectedTag = nil
+                    state.tagStations = []
                 } label: {
                     Text("All")
                         .font(.system(size: 12.5, weight: .medium))
-                        .foregroundStyle(selectedTag == nil ? colors.accent.fg : colors.fg)
+                        .foregroundStyle(state.selectedTag == nil ? colors.accent.fg : colors.fg)
                         .padding(.horizontal, 12)
                         .frame(height: 32)
-                        .background(selectedTag == nil ? colors.accent.accent : colors.bgInput)
+                        .background(state.selectedTag == nil ? colors.accent.accent : colors.bgInput)
                         .overlay(
                             RoundedRectangle(cornerRadius: AppLayout.rSm)
-                                .strokeBorder(selectedTag == nil ? colors.accent.strong : colors.borderStrong, lineWidth: 0.5)
+                                .strokeBorder(state.selectedTag == nil ? colors.accent.strong : colors.borderStrong, lineWidth: 0.5)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: AppLayout.rSm))
                 }
                 .buttonStyle(.plain)
 
-                if let tag = selectedTag {
-                    TagActivePill(tag: tag) { selectedTag = nil }
-                }
-            }
-
-            // Tag cloud
-            FlowLayout(spacing: 6) {
-                ForEach(sortedTags, id: \.name) { tag in
-                    TagChip(
-                        name: tag.name,
-                        count: tag.count,
-                        fontSize: fontSize(for: tag.count),
-                        isActive: selectedTag == tag.name
-                    ) {
-                        selectedTag = selectedTag == tag.name ? nil : tag.name
+                if let tag = state.selectedTag {
+                    TagActivePill(tag: tag) {
+                        state.selectedTag = nil
+                        state.tagStations = []
                     }
                 }
             }
-            .padding(.bottom, 16)
 
-            if selectedTag != nil {
-                StationListSection(
-                    title: "Stations tagged #\(selectedTag!)",
-                    subtitle: "\(filteredStations.count) stations",
-                    stations: filteredStations
-                )
+            if sortedTags.isEmpty {
+                ContentUnavailableView("Loading tags…", systemImage: "tag")
+                    .frame(maxWidth: .infinity, minHeight: 200)
+            } else {
+                FlowLayout(spacing: 6) {
+                    ForEach(sortedTags) { tag in
+                        TagChip(
+                            name: tag.name,
+                            count: tag.stationcount,
+                            fontSize: fontSize(for: tag.stationcount),
+                            isActive: state.selectedTag == tag.name
+                        ) {
+                            if state.selectedTag == tag.name {
+                                state.selectedTag = nil
+                                state.tagStations = []
+                            } else {
+                                Task { await state.loadStationsForTag(tag.name) }
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, 16)
+
+                if state.selectedTag != nil {
+                    StationListSection(
+                        title: "Stations tagged #\(state.selectedTag!)",
+                        subtitle: "\(state.tagStations.count) stations",
+                        stations: state.tagStations
+                    )
+                }
             }
         }
     }
@@ -138,7 +145,6 @@ private struct TagActivePill: View {
     }
 }
 
-// Simple flow layout for tag cloud
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
 
