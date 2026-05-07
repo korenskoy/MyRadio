@@ -60,7 +60,7 @@ private struct CoverArtView: View {
                 Image(nsImage: artworkImage)
                     .resizable()
                     .interpolation(.high)
-                    .aspectRatio(contentMode: .fill)
+                    .aspectRatio(contentMode: .fit)
             } else if let station {
                 Text(station.glyph)
                     .font(.system(size: 96, weight: .heavy, design: .default))

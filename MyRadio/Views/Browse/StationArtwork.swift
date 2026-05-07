@@ -26,7 +26,7 @@ struct StationArtwork: View {
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)
-                    .aspectRatio(contentMode: .fill)
+                    .aspectRatio(contentMode: .fit)
             } else {
                 Text(station.glyph)
                     .font(.system(size: glyphSize, weight: .bold))
