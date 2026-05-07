@@ -26,6 +26,7 @@ final class AppState {
     // MARK: - Collections
     var stations: [Station] = []
     var favorites: Set<String> = []
+    private var favoriteStationData: [String: Station] = [:]
     var history: [HistoryEntry] = []
     var customStations: [CustomStation] = []
 
@@ -74,9 +75,13 @@ final class AppState {
     }
 
     var favoriteStations: [Station] {
-        let allStations = stations + discoverTopVoted + discoverPopular + topVotedStations + popularStations
-        let unique = Dictionary(allStations.map { ($0.stationuuid, $0) }, uniquingKeysWith: { first, _ in first })
-        return favorites.compactMap { unique[$0] }
+        favorites.compactMap { uuid in
+            if let station = favoriteStationData[uuid] { return station }
+            let allStations = stations + discoverTopVoted + discoverPopular
+                + topVotedStations + popularStations
+                + searchResults + tagStations + countryStations + mapStations
+            return allStations.first { $0.stationuuid == uuid }
+        }
     }
 
     func isFavorite(_ station: Station) -> Bool {
@@ -94,6 +99,7 @@ final class AppState {
             let api = RadioBrowserAPI(log: self.debugLog)
             self.cache = StationCache(api: api, log: self.debugLog)
             self.favorites = await self.persistence.loadFavorites()
+            self.favoriteStationData = await self.persistence.loadFavoriteStations()
             self.history = await self.persistence.loadHistory()
             self.customStations = await self.persistence.loadCustomStations()
 
@@ -137,10 +143,15 @@ final class AppState {
     func toggleFavorite(_ station: Station) {
         if favorites.contains(station.stationuuid) {
             favorites.remove(station.stationuuid)
+            favoriteStationData.removeValue(forKey: station.stationuuid)
         } else {
             favorites.insert(station.stationuuid)
+            favoriteStationData[station.stationuuid] = station
         }
-        Task { await persistence.saveFavorites(favorites) }
+        Task {
+            await persistence.saveFavorites(favorites)
+            await persistence.saveFavoriteStations(favoriteStationData)
+        }
     }
 
     func vote(for station: Station) {

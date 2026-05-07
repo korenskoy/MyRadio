@@ -1,4 +1,5 @@
 import Foundation
+import RadioBrowserKit
 
 actor Persistence {
     private let directory: URL
@@ -22,6 +23,14 @@ actor Persistence {
 
     func saveFavorites(_ favorites: Set<String>) {
         save(favorites, to: "favorites.json")
+    }
+
+    func loadFavoriteStations() -> [String: Station] {
+        load("favorite-stations.json") ?? [:]
+    }
+
+    func saveFavoriteStations(_ stations: [String: Station]) {
+        save(stations, to: "favorite-stations.json")
     }
 
     // MARK: - History
