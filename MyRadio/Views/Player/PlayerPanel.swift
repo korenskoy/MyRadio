@@ -299,21 +299,21 @@ private struct NowPlayingActionButton: View {
     }
 }
 
-// MARK: - Visualizer (36 static bars)
+// MARK: - Visualizer (36 animated bars)
 
 private struct VisualizerView: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
 
-    private let seed: [Double] = [
-        0.3, 0.6, 0.9, 0.7, 0.4, 0.5, 0.85, 0.95, 0.6, 0.3, 0.45, 0.7,
-        0.9, 0.65, 0.4, 0.3, 0.55, 0.75, 0.85, 0.7, 0.5, 0.4, 0.6, 0.8,
-        0.92, 0.75, 0.55, 0.4, 0.3, 0.5, 0.65, 0.78, 0.88, 0.7, 0.5, 0.35
-    ]
+    private let barCount = 36
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 2) {
-            ForEach(0..<seed.count, id: \.self) { i in
+            ForEach(0..<barCount, id: \.self) { i in
+                let level = i < state.streamPlayer.audioLevels.count
+                    ? CGFloat(state.streamPlayer.audioLevels[i])
+                    : 0
+
                 RoundedRectangle(cornerRadius: 1.5)
                     .fill(
                         LinearGradient(
@@ -322,18 +322,14 @@ private struct VisualizerView: View {
                             endPoint: .bottom
                         )
                     )
-                    .frame(height: barHeight(i))
+                    .frame(height: max(2, level * 38))
                     .opacity(state.isPlaying ? 0.85 : 0.3)
+                    .animation(.easeOut(duration: 0.08), value: level)
             }
         }
-        .frame(height: 38)
+        .frame(height: 38, alignment: .bottom)
         .padding(.horizontal, 2)
         .padding(.top, 14)
-    }
-
-    private func barHeight(_ index: Int) -> CGFloat {
-        let h = state.isPlaying ? seed[index] : 0.15
-        return h * 38
     }
 }
 

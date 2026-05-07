@@ -466,9 +466,12 @@ private struct StreamTabView: View {
 
         ScrollView {
             LazyVGrid(columns: columns, spacing: 12) {
-                statCard(title: "Bitrate", value: player.currentBitrate > 0 ? String(format: "%.0f", player.currentBitrate) : "—", unit: "kbps")
-                statCard(title: "Codec", value: station?.codec?.uppercased() ?? "—", detail: "44.1 kHz · 2ch")
+                statCard(title: "Bitrate", value: player.currentBitrate > 0 ? String(format: "%.0f", player.currentBitrate) : (station?.bitrateFormatted ?? "—"), unit: player.currentBitrate > 0 ? "kbps" : nil)
+                statCard(title: "Codec", value: station?.codec?.uppercased() ?? "—")
                 meterCard(title: "Buffer", value: String(format: "%.1f", player.bufferHealth), unit: "s", fill: min(1, player.bufferHealth / 10), color: colors.accent.accent)
+                statCard(title: "Latency", value: player.latency > 0 ? String(format: "%.1f", player.latency) : "—", unit: "s")
+                statCard(title: "Reconnects", value: "\(player.reconnectCount)", unit: nil)
+                statCard(title: "Data", value: formatBytes(player.dataReceived), unit: nil)
                 statCard(title: "Status", value: player.isPlaying ? "Playing" : "Stopped", unit: nil)
                 urlCard(title: "Stream URL", url: station?.urlResolved ?? station?.url ?? "—")
             }
@@ -535,6 +538,18 @@ private struct StreamTabView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(colors.bgDebugRow, in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    private func formatBytes(_ bytes: Int64) -> String {
+        if bytes <= 0 { return "—" }
+        let units = ["B", "KB", "MB", "GB"]
+        var value = Double(bytes)
+        var idx = 0
+        while value >= 1024 && idx < units.count - 1 {
+            value /= 1024
+            idx += 1
+        }
+        return idx == 0 ? "\(bytes) B" : String(format: "%.1f %@", value, units[idx])
     }
 
     private func urlCard(title: String, url: String) -> some View {
