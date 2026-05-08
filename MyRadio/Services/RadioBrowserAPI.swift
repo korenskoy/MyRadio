@@ -78,7 +78,7 @@ actor RadioBrowserAPI {
     }
 
     func stationsWithGeo() async -> [Station] {
-        let pageSize = 10_000
+        let pageSize = 1_000
         var all: [Station] = []
         var offset = 0
         repeat {
