@@ -96,34 +96,42 @@ struct CountriesTab: View {
 
     @ViewBuilder
     private func countryDetail(_ country: NamedCount) -> some View {
-        HStack(spacing: 8) {
-            Button {
-                selectedCountry = nil
-                state.selectedCountryCode = nil
-                state.countryStations = []
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text("Back")
-                        .font(.system(size: 12.5, weight: .medium))
-                }
-                .foregroundStyle(colors.accent.accent)
+        ZStack {
+            // Center: flag + name
+            HStack(spacing: 6) {
+                Text(CountryFlag.emoji(for: country.name))
+                    .font(.system(size: 16))
+                Text(CountryFlag.displayName(for: country.name))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(colors.fg)
             }
-            .buttonStyle(.plain)
 
-            Text(CountryFlag.emoji(for: country.name))
-                .font(.system(size: 16))
+            // Left: back button
+            HStack {
+                Button {
+                    selectedCountry = nil
+                    state.selectedCountryCode = nil
+                    state.countryStations = []
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("Back")
+                            .font(.system(size: 12.5, weight: .medium))
+                    }
+                    .foregroundStyle(colors.accent.accent)
+                }
+                .buttonStyle(.plain)
+                Spacer()
+            }
 
-            Text(CountryFlag.displayName(for: country.name))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(colors.fg)
-
-            Spacer()
-
-            Text("\(state.countryStations.count) stations")
-                .font(Typography.meta)
-                .foregroundStyle(colors.fg3)
+            // Right: station count
+            HStack {
+                Spacer()
+                Text("\(state.countryStations.count) stations")
+                    .font(Typography.meta)
+                    .foregroundStyle(colors.fg3)
+            }
         }
         .padding(.bottom, 14)
 
