@@ -104,7 +104,7 @@ struct CountriesTab: View {
             Text(CountryFlag.emoji(for: country.name))
                 .font(.system(size: 16))
 
-            Text(country.name)
+            Text(CountryFlag.displayName(for: country.name))
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(colors.fg)
 
@@ -127,14 +127,37 @@ struct CountriesTab: View {
     }
 }
 
-// MARK: - Country flag helper
+// MARK: - Country flag + display name helper
 
 enum CountryFlag {
-    static func emoji(for countryName: String) -> String {
-        guard let code = lookup[countryName.lowercased()] else { return "🌐" }
+    /// Emoji flag for a raw API country name.
+    static func emoji(for name: String) -> String {
+        isoCode(for: name).map(flagEmoji) ?? "🌐"
+    }
+
+    /// Clean display name from the locale (e.g. "Russia" instead of "The Russian Federation").
+    static func displayName(for name: String) -> String {
+        guard let code = isoCode(for: name) else { return name }
+        return Locale(identifier: "en_US").localizedString(forRegionCode: code) ?? name
+    }
+
+    // MARK: Private
+
+    private static func isoCode(for name: String) -> String? {
+        let lower = name.lowercased()
+        if let c = lookup[lower]                    { return c }  // exact match
+        if let c = aliases[lower]                   { return c }  // known alias
+        let stripped = lower.hasPrefix("the ") ? String(lower.dropFirst(4)) : lower
+        if let c = lookup[stripped]                 { return c }  // strip "The "
+        if let c = aliases[stripped]                { return c }
+        return nil
+    }
+
+    private static func flagEmoji(code: String) -> String {
         let base: UInt32 = 127397
-        let scalars = code.uppercased().unicodeScalars
-        return String(scalars.compactMap { UnicodeScalar(base + $0.value) }.map { Character($0) })
+        return String(code.uppercased().unicodeScalars
+            .compactMap { UnicodeScalar(base + $0.value) }
+            .map { Character($0) })
     }
 
     private static let lookup: [String: String] = {
@@ -146,6 +169,35 @@ enum CountryFlag {
         }
         return map
     }()
+
+    // Known API names that don't match locale strings even after stripping "The".
+    private static let aliases: [String: String] = [
+        "russian federation":              "RU",
+        "united states of america":        "US",
+        "korea, republic of":              "KR",
+        "republic of korea":               "KR",
+        "korea, democratic people's republic of": "KP",
+        "iran, islamic republic of":       "IR",
+        "syrian arab republic":            "SY",
+        "viet nam":                        "VN",
+        "czech republic":                  "CZ",
+        "republic of moldova":             "MD",
+        "tanzania, united republic of":    "TZ",
+        "taiwan, province of china":       "TW",
+        "bolivia, plurinational state of": "BO",
+        "venezuela, bolivarian republic of": "VE",
+        "micronesia, federated states of": "FM",
+        "congo, the democratic republic of the": "CD",
+        "democratic republic of the congo":"CD",
+        "cote d'ivoire":                   "CI",
+        "ivory coast":                     "CI",
+        "trinidad and tobago":             "TT",
+        "saint kitts and nevis":           "KN",
+        "antigua and barbuda":             "AG",
+        "bosnia and herzegovina":          "BA",
+        "saint vincent and the grenadines":"VC",
+        "turks and caicos islands":        "TC",
+    ]
 }
 
 // MARK: - Country card
@@ -162,7 +214,7 @@ private struct CountryCard: View {
                 Text(CountryFlag.emoji(for: country.name))
                     .font(.system(size: 22))
 
-                Text(country.name)
+                Text(CountryFlag.displayName(for: country.name))
                     .font(.system(size: 12.5, weight: .medium))
                     .foregroundStyle(colors.fg)
                     .lineLimit(1)
