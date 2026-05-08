@@ -62,8 +62,8 @@ actor StationCache {
         await api.stationsByURL(url)
     }
 
-    func stationsWithGeo(limit: Int = 5000) async -> [Station] {
-        await cached("geo-\(limit)") { await self.api.stationsWithGeo(limit: limit) }
+    func stationsWithGeo() async -> [Station] {
+        await cached("geo-all") { await self.api.stationsWithGeo() }
     }
 
     // MARK: - Metadata

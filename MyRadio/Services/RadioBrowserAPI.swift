@@ -77,12 +77,11 @@ actor RadioBrowserAPI {
         } ?? []
     }
 
-    func stationsWithGeo(limit: Int = 5000) async -> [Station] {
+    func stationsWithGeo() async -> [Station] {
         var q = StationSearchQuery()
         q.hasGeoInfo = true
-        q.limit = limit
         q.hidebroken = true
-        return await fetch("stationsWithGeo(\(limit))") {
+        return await fetch("stationsWithGeo") {
             try await client.search(q)
         } ?? []
     }
