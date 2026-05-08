@@ -1,4 +1,5 @@
 import AVFoundation
+import MediaToolbox
 import SwiftUI
 
 @Observable
@@ -31,8 +32,8 @@ final class StreamPlayer: NSObject {
     private let maxReconnectAttempts = 5
     private let reconnectBaseDelay: TimeInterval = 2
 
-    private var levelTimer: Timer?
-    private var phase: Double = 0
+    private var audioTap: MTAudioProcessingTap?
+    private var tapContext: TapContext?
 
     func configure(log: DebugLog) {
         self.log = log
@@ -50,7 +51,7 @@ final class StreamPlayer: NSObject {
         reconnectTask?.cancel()
         reconnectTask = nil
         isReconnecting = false
-        stopLevelSimulation()
+        zeroLevels()
         teardownPlayer()
         currentURL = nil
         reconnectCount = 0
@@ -63,11 +64,10 @@ final class StreamPlayer: NSObject {
         if isPlaying {
             player.pause()
             isPlaying = false
-            stopLevelSimulation()
+            zeroLevels()
         } else {
             player.play()
             isPlaying = true
-            startLevelSimulation()
         }
     }
 
@@ -91,9 +91,17 @@ final class StreamPlayer: NSObject {
         observePlayerItem()
         observePlayer()
 
+        // Load audio track for real metering tap (async — applies once track is available)
+        let capturedItem = playerItem!
+        Task { [weak self] in
+            guard let self else { return }
+            guard let tracks = try? await asset.loadTracks(withMediaType: .audio),
+                  let audioTrack = tracks.first else { return }
+            await MainActor.run { self.setupAudioTap(track: audioTrack, for: capturedItem) }
+        }
+
         p.play()
         isPlaying = true
-        startLevelSimulation()
         log?.append(.info, "Stream connected", source: "audio.player")
     }
 
@@ -119,6 +127,9 @@ final class StreamPlayer: NSObject {
         bufferHealth = 0
         currentBitrate = 0
         latency = 0
+        audioTap = nil
+        tapContext?.player = nil
+        tapContext = nil
     }
 
     // MARK: - Reconnect
@@ -127,7 +138,7 @@ final class StreamPlayer: NSObject {
         guard !isReconnecting, let url = currentURL else { return }
         isReconnecting = true
         isPlaying = false
-        stopLevelSimulation()
+        zeroLevels()
 
         reconnectTask = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -187,10 +198,8 @@ final class StreamPlayer: NSObject {
             guard let self else { return }
             let playing = player.rate > 0
             self.isPlaying = playing
-            if playing {
-                self.startLevelSimulation()
-            } else if !self.isReconnecting {
-                self.stopLevelSimulation()
+            if !playing, !self.isReconnecting {
+                self.zeroLevels()
             }
         }
 
@@ -226,35 +235,110 @@ final class StreamPlayer: NSObject {
         }
     }
 
-    // MARK: - Audio level simulation
+    // MARK: - Audio metering via MTAudioProcessingTap
 
-    private func startLevelSimulation() {
-        guard levelTimer == nil else { return }
-        levelTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 24.0, repeats: true) { [weak self] _ in
-            self?.updateLevels()
-        }
-    }
-
-    private func stopLevelSimulation() {
-        levelTimer?.invalidate()
-        levelTimer = nil
+    private func zeroLevels() {
         withAnimation(.easeOut(duration: 0.4)) {
             audioLevels = Array(repeating: 0, count: 36)
         }
     }
 
-    private func updateLevels() {
-        phase += 0.15
-        var newLevels = [Float](repeating: 0, count: 36)
+    private func setupAudioTap(track: AVAssetTrack, for item: AVPlayerItem) {
+        guard item === playerItem else { return }
+
+        let ctx = TapContext()
+        ctx.player = self
+        tapContext = ctx
+        let ptr = Unmanaged.passRetained(ctx).toOpaque()
+
+        var callbacks = MTAudioProcessingTapCallbacks(
+            version: kMTAudioProcessingTapCallbacksVersion_0,
+            clientInfo: ptr,
+            init: StreamPlayer.tapInit,
+            finalize: StreamPlayer.tapFinalize,
+            prepare: nil,
+            unprepare: nil,
+            process: StreamPlayer.tapProcess
+        )
+
+        var ref: MTAudioProcessingTap?
+        guard MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks,
+                                         kMTAudioProcessingTapCreationFlag_PostEffects, &ref) == noErr,
+              let tap = ref else { return }
+
+        audioTap = tap
+
+        let params = AVMutableAudioMixInputParameters(track: track)
+        params.audioTapProcessor = tap
+
+        let mix = AVMutableAudioMix()
+        mix.inputParameters = [params]
+        item.audioMix = mix
+    }
+
+    // Called on main thread by the tap — updates audioLevels from real RMS
+    fileprivate func applyRMS(_ rms: Float) {
+        guard let ctx = tapContext else { return }
+        let alpha: Float = rms > ctx.rmsSmoothed ? 0.7 : 0.15
+        ctx.rmsSmoothed = ctx.rmsSmoothed * (1 - alpha) + rms * alpha
+        let energy = min(1.0, ctx.rmsSmoothed * 6.0)
+
+        ctx.phase += 0.15
+        var levels = [Float](repeating: 0, count: 36)
         for i in 0..<36 {
             let fi = Float(i)
-            let base = 0.3 + 0.4 * sin(Float(phase) * 0.7 + fi * 0.3)
-            let wave = 0.2 * sin(Float(phase) * 1.3 + fi * 0.5)
-            let noise = Float.random(in: -0.15...0.15)
-            newLevels[i] = max(0.05, min(1.0, base + wave + noise))
+            let base = 0.3 + 0.4 * sinf(Float(ctx.phase) * 0.7 + fi * 0.3)
+            let wave = 0.2 * sinf(Float(ctx.phase) * 1.3 + fi * 0.5)
+            let noise = Float.random(in: -0.1...0.1)
+            levels[i] = max(0, base + wave + noise) * energy
         }
-        audioLevels = newLevels
+        audioLevels = levels
     }
+
+    // MARK: - C tap callbacks (no capture allowed)
+
+    private static let tapInit: MTAudioProcessingTapInitCallback = { _, clientInfo, tapStorageOut in
+        tapStorageOut.pointee = clientInfo
+    }
+
+    private static let tapFinalize: MTAudioProcessingTapFinalizeCallback = { tap in
+        let ptr = MTAudioProcessingTapGetStorage(tap)
+        Unmanaged<TapContext>.fromOpaque(ptr).release()
+    }
+
+    private static let tapProcess: MTAudioProcessingTapProcessCallback = {
+        tap, numberFrames, flags, bufferListInOut, numberFramesOut, flagsOut in
+
+        // Pass audio through unchanged
+        MTAudioProcessingTapGetSourceAudio(tap, numberFrames, bufferListInOut, flagsOut, nil, numberFramesOut)
+
+        // Compute RMS across all channels
+        let blPtr = UnsafeMutableAudioBufferListPointer(bufferListInOut)
+        var sumSq: Float = 0
+        var totalSamples = 0
+        for buf in blPtr {
+            guard let data = buf.mData else { continue }
+            let count = Int(buf.mDataByteSize) / MemoryLayout<Float>.size
+            let samples = data.assumingMemoryBound(to: Float.self)
+            for i in 0..<count { sumSq += samples[i] * samples[i] }
+            totalSamples += count
+        }
+        let rms = totalSamples > 0 ? sqrtf(sumSq / Float(totalSamples)) : 0
+
+        let ptr = MTAudioProcessingTapGetStorage(tap)
+        let ctx = Unmanaged<TapContext>.fromOpaque(ptr).takeUnretainedValue()
+        guard let player = ctx.player else { return }
+
+        DispatchQueue.main.async { player.applyRMS(rms) }
+    }
+}
+
+// MARK: - Tap context (passed via MTAudioProcessingTap storage)
+
+private final class TapContext {
+    weak var player: StreamPlayer?
+    var rmsSmoothed: Float = 0
+    var phase: Double = 0
 }
 
 // MARK: - AVPlayerItemMetadataOutputPushDelegate
