@@ -88,6 +88,12 @@ actor StationCache {
 
     // MARK: - Invalidation
 
+    func invalidateGeo() {
+        let file = cacheDir.appendingPathComponent("geo-all.json")
+        try? FileManager.default.removeItem(at: file)
+        log.append(.info, "Geo cache invalidated", source: "cache")
+    }
+
     func invalidateAll() {
         try? FileManager.default.removeItem(at: cacheDir)
         try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)

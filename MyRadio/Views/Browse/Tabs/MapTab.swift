@@ -23,7 +23,7 @@ struct MapTab: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ToolbarRow(subtitle: "\(geoStations.count) stations with coordinates") {
+            ToolbarRow {
                 BrowseButton(label: "Show all", icon: "map", style: .primary) {
                     requestedRegion = DEFAULT_REGION
                     selectedStation = nil
@@ -37,8 +37,11 @@ struct MapTab: View {
                     selectedStation = nil
                 }
                 Spacer()
+                Text("\(geoStations.count) stations with coordinates")
+                    .font(Typography.meta)
+                    .foregroundStyle(colors.fg3)
                 BrowseButton(label: "", icon: "arrow.clockwise", style: .ghost) {
-                    Task { await reloadStations() }
+                    Task { await state.reloadMapStations() }
                 }
             }
 
@@ -69,10 +72,6 @@ struct MapTab: View {
         }
     }
 
-    private func reloadStations() async {
-        state.mapStations = []
-        await state.loadTabData(for: .map)
-    }
 }
 
 // MARK: - NSViewRepresentable

@@ -217,6 +217,12 @@ final class AppState {
         }
     }
 
+    func reloadMapStations() async {
+        cache?.invalidateGeo()
+        mapStations = []
+        await loadTabData(for: .map)
+    }
+
     func loadStationsForCountry(_ name: String) async {
         guard let cache else { return }
         selectedCountryCode = name
