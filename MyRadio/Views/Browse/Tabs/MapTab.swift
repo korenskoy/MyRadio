@@ -2,45 +2,31 @@ import SwiftUI
 import MapKit
 import RadioBrowserKit
 
-private let DEFAULT_MAP_CENTER = CLLocationCoordinate2D(latitude: 20, longitude: 0)
-private let DEFAULT_MAP_SPAN   = MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 360)
+private let DEFAULT_REGION = MKCoordinateRegion(
+    center: CLLocationCoordinate2D(latitude: 20, longitude: 0),
+    span:   MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 360)
+)
+
+// MARK: - Tab shell
 
 struct MapTab: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
 
-    @State private var selectedStationId: String?
-    @State private var clusterMode = false
-    @State private var currentSpan  = DEFAULT_MAP_SPAN
-    @State private var mapPosition  = MapCameraPosition.region(
-        MKCoordinateRegion(center: DEFAULT_MAP_CENTER, span: DEFAULT_MAP_SPAN)
-    )
+    @State private var selectedStation: Station?
+    @State private var clusterMode = true
+    @State private var requestedRegion: MKCoordinateRegion? = nil
 
     private var geoStations: [Station] {
         state.mapStations.filter { $0.geoLat != nil && $0.geoLong != nil }
-    }
-
-    private var selectedStation: Station? {
-        guard let id = selectedStationId else { return nil }
-        return geoStations.first { $0.stationuuid == id }
-    }
-
-    // Grid-based O(n) clustering: cell size scales with current zoom span.
-    private var clusters: [StationCluster] {
-        let cell = max(currentSpan.latitudeDelta * 0.04, 0.3)
-        var grid: [String: [Station]] = [:]
-        for s in geoStations {
-            let key = "\(Int((s.geoLat ?? 0) / cell)):\(Int((s.geoLong ?? 0) / cell))"
-            grid[key, default: []].append(s)
-        }
-        return grid.values.map { StationCluster(stations: $0) }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             ToolbarRow(subtitle: "\(geoStations.count) stations with coordinates") {
                 BrowseButton(label: "Show all", icon: "map", style: .primary) {
-                    resetToWorldView()
+                    requestedRegion = DEFAULT_REGION
+                    selectedStation = nil
                 }
                 BrowseButton(
                     label: "Cluster",
@@ -48,7 +34,7 @@ struct MapTab: View {
                     style: clusterMode ? .primary : .normal
                 ) {
                     clusterMode.toggle()
-                    selectedStationId = nil
+                    selectedStation = nil
                 }
                 Spacer()
                 BrowseButton(label: "", icon: "arrow.clockwise", style: .ghost) {
@@ -56,44 +42,13 @@ struct MapTab: View {
                 }
             }
 
-            Map(position: $mapPosition) {
-                if clusterMode {
-                    ForEach(clusters) { cluster in
-                        if cluster.stations.count == 1, let s = cluster.stations.first {
-                            // Single station — normal pin
-                            Annotation(s.name, coordinate: s.coordinate) {
-                                StationPin(station: s, isSelected: selectedStationId == s.stationuuid)
-                                    .onTapGesture { selectedStationId = s.stationuuid }
-                            }
-                        } else {
-                            // Cluster pin
-                            Annotation("", coordinate: cluster.coordinate) {
-                                ClusterPin(count: cluster.stations.count)
-                                    .onTapGesture { zoomInto(cluster) }
-                            }
-                        }
-                    }
-                } else {
-                    ForEach(geoStations) { station in
-                        Annotation(station.name, coordinate: station.coordinate) {
-                            StationPin(
-                                station: station,
-                                isSelected: selectedStationId == station.stationuuid
-                            )
-                            .onTapGesture { selectedStationId = station.stationuuid }
-                        }
-                    }
-                }
-            }
+            MapKitView(
+                stations: geoStations,
+                clusterMode: clusterMode,
+                selectedStation: $selectedStation,
+                requestedRegion: $requestedRegion
+            )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .mapStyle(.standard(elevation: .flat, emphasis: .muted))
-            .mapControls {
-                MapZoomStepper()
-                MapCompass()
-            }
-            .onMapCameraChange { ctx in
-                currentSpan = ctx.region.span
-            }
             .clipShape(RoundedRectangle(cornerRadius: AppLayout.rMd))
             .overlay(
                 RoundedRectangle(cornerRadius: AppLayout.rMd)
@@ -104,53 +59,192 @@ struct MapTab: View {
                     StationCallout(station: station) {
                         state.play(station)
                     } onDismiss: {
-                        selectedStationId = nil
+                        selectedStation = nil
                     }
                     .padding(12)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .animation(.easeInOut(duration: 0.2), value: selectedStationId)
+            .animation(.easeInOut(duration: 0.2), value: selectedStation?.stationuuid)
         }
-    }
-
-    // MARK: - Helpers
-
-    private func resetToWorldView() {
-        mapPosition = .region(MKCoordinateRegion(center: DEFAULT_MAP_CENTER, span: DEFAULT_MAP_SPAN))
-        selectedStationId = nil
     }
 
     private func reloadStations() async {
         state.mapStations = []
         await state.loadTabData(for: .map)
     }
+}
 
-    private func zoomInto(_ cluster: StationCluster) {
-        let lats  = cluster.stations.compactMap { $0.geoLat }
-        let lons  = cluster.stations.compactMap { $0.geoLong }
-        guard !lats.isEmpty else { return }
-        let latSpan = (lats.max()! - lats.min()!) * 1.5 + 1
-        let lonSpan = (lons.max()! - lons.min()!) * 1.5 + 1
-        withAnimation(.easeInOut(duration: 0.4)) {
-            mapPosition = .region(MKCoordinateRegion(
-                center: cluster.coordinate,
-                span: MKCoordinateSpan(latitudeDelta: latSpan, longitudeDelta: lonSpan)
-            ))
+// MARK: - NSViewRepresentable
+
+private struct MapKitView: NSViewRepresentable {
+    let stations: [Station]
+    let clusterMode: Bool
+    @Binding var selectedStation: Station?
+    @Binding var requestedRegion: MKCoordinateRegion?
+
+    func makeNSView(context: Context) -> MKMapView {
+        let mv = MKMapView()
+        mv.delegate = context.coordinator
+        mv.register(StationAnnotationView.self,
+                    forAnnotationViewWithReuseIdentifier: StationAnnotationView.reuseID)
+        mv.register(ClusterAnnotationView.self,
+                    forAnnotationViewWithReuseIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier)
+        mv.setRegion(DEFAULT_REGION, animated: false)
+        return mv
+    }
+
+    func updateNSView(_ mv: MKMapView, context: Context) {
+        let c = context.coordinator
+        let clusterChanged = c.clusterMode != clusterMode
+        c.parent = self
+        c.clusterMode = clusterMode
+
+        // Reload annotations when stations or cluster mode changes
+        let currentIds = Set(mv.annotations.compactMap { ($0 as? StationAnnotation)?.station.stationuuid })
+        let newIds     = Set(stations.map { $0.stationuuid })
+        if currentIds != newIds || clusterChanged {
+            mv.removeAnnotations(mv.annotations)
+            mv.addAnnotations(stations.map { StationAnnotation($0) })
+        }
+
+        // Honour requested region (Show all / external zoom)
+        if let region = requestedRegion {
+            mv.setRegion(region, animated: true)
+            DispatchQueue.main.async { self.requestedRegion = nil }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    // MARK: Coordinator
+
+    final class Coordinator: NSObject, MKMapViewDelegate {
+        var parent: MapKitView
+        var clusterMode: Bool
+
+        init(_ parent: MapKitView) {
+            self.parent = parent
+            self.clusterMode = parent.clusterMode
+        }
+
+        func mapView(_ mv: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if annotation is MKClusterAnnotation {
+                return mv.dequeueReusableAnnotationView(
+                    withIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier,
+                    for: annotation)
+            }
+            guard annotation is StationAnnotation else { return nil }
+            let view = mv.dequeueReusableAnnotationView(
+                withIdentifier: StationAnnotationView.reuseID,
+                for: annotation) as! StationAnnotationView
+            view.clusteringIdentifier = clusterMode ? "station" : nil
+            return view
+        }
+
+        func mapView(_ mv: MKMapView, didSelect view: MKAnnotationView) {
+            if let sa = view.annotation as? StationAnnotation {
+                DispatchQueue.main.async { self.parent.selectedStation = sa.station }
+            } else if let cluster = view.annotation as? MKClusterAnnotation {
+                mv.deselectAnnotation(view.annotation!, animated: false)
+                mv.showAnnotations(cluster.memberAnnotations, animated: true)
+            }
+        }
+
+        func mapView(_ mv: MKMapView, didDeselect view: MKAnnotationView) {
+            if view.annotation is StationAnnotation {
+                DispatchQueue.main.async { self.parent.selectedStation = nil }
+            }
         }
     }
 }
 
-// MARK: - Station cluster model
+// MARK: - Annotation model
 
-private struct StationCluster: Identifiable {
-    let id = UUID()
-    let stations: [Station]
+private final class StationAnnotation: NSObject, MKAnnotation {
+    let station: Station
+    var coordinate: CLLocationCoordinate2D
+    var title: String? { station.name }
 
-    var coordinate: CLLocationCoordinate2D {
-        let lat = stations.compactMap { $0.geoLat }.reduce(0, +) / Double(stations.count)
-        let lon = stations.compactMap { $0.geoLong }.reduce(0, +) / Double(stations.count)
-        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    init(_ station: Station) {
+        self.station = station
+        coordinate = CLLocationCoordinate2D(latitude: station.geoLat ?? 0,
+                                            longitude: station.geoLong ?? 0)
+    }
+}
+
+// MARK: - Station pin view
+
+private final class StationAnnotationView: MKAnnotationView {
+    static let reuseID = "station"
+
+    override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        frame = CGRect(x: 0, y: 0, width: 11, height: 11)
+        canShowCallout = false
+        wantsLayer = true
+        layer?.cornerRadius = 5.5
+        layer?.backgroundColor = NSColor(calibratedRed: 0.30, green: 0.76, blue: 0.36, alpha: 1).cgColor
+        layer?.borderColor   = NSColor.white.cgColor
+        layer?.borderWidth   = 1
+        layer?.shadowColor   = NSColor.black.cgColor
+        layer?.shadowOpacity = 0.28
+        layer?.shadowRadius  = 2
+        layer?.shadowOffset  = CGSize(width: 0, height: -1)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func setSelected(_ selected: Bool, animated: Bool) {
+        super.setSelected(selected, animated: animated)
+        let size: CGFloat = selected ? 16 : 11
+        frame = CGRect(x: -size/2, y: -size/2, width: size, height: size)
+        layer?.cornerRadius = size / 2
+        layer?.borderWidth  = selected ? 2 : 1
+    }
+}
+
+// MARK: - Cluster pin view
+
+private final class ClusterAnnotationView: MKAnnotationView {
+    private let label: NSTextField = {
+        let tf = NSTextField()
+        tf.isBezeled = false; tf.isEditable = false; tf.isSelectable = false
+        tf.drawsBackground = false; tf.alignment = .center
+        tf.textColor = .white
+        tf.font = .systemFont(ofSize: 10, weight: .bold)
+        tf.translatesAutoresizingMaskIntoConstraints = false
+        return tf
+    }()
+
+    override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        frame = CGRect(x: 0, y: 0, width: 34, height: 34)
+        canShowCallout = false
+        wantsLayer = true
+        layer?.cornerRadius  = 17
+        layer?.backgroundColor = NSColor(calibratedRed: 0.30, green: 0.76, blue: 0.36, alpha: 0.88).cgColor
+        layer?.borderColor   = NSColor.white.withAlphaComponent(0.4).cgColor
+        layer?.borderWidth   = 1
+        layer?.shadowColor   = NSColor.black.cgColor
+        layer?.shadowOpacity = 0.25
+        layer?.shadowRadius  = 3
+        layer?.shadowOffset  = CGSize(width: 0, height: -1)
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var annotation: MKAnnotation? {
+        didSet {
+            guard let c = annotation as? MKClusterAnnotation else { return }
+            let n = c.memberAnnotations.count
+            label.stringValue = n < 1000 ? "\(n)" : "\(n / 1000)k"
+        }
     }
 }
 
@@ -160,46 +254,6 @@ private extension Station {
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: geoLat ?? 0, longitude: geoLong ?? 0)
     }
-}
-
-// MARK: - Cluster pin
-
-private struct ClusterPin: View {
-    let count: Int
-    @Environment(\.appColors) private var colors
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(colors.accent.accent.opacity(0.85))
-                .frame(width: 32, height: 32)
-            Text(count < 1000 ? "\(count)" : "\(count / 1000)k")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(colors.accent.fg)
-        }
-        .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
-    }
-}
-
-// MARK: - Station pin
-
-private struct StationPin: View {
-    let station: Station
-    let isSelected: Bool
-
-    var body: some View {
-        Circle()
-            .fill(station.gradientColors.0)
-            .frame(width: pinSize, height: pinSize)
-            .overlay(
-                Circle()
-                    .strokeBorder(isSelected ? Color.white : Color.white.opacity(0.5),
-                                  lineWidth: isSelected ? 2 : 1)
-            )
-            .shadow(color: .black.opacity(0.25), radius: isSelected ? 4 : 2, y: 1)
-    }
-
-    private var pinSize: CGFloat { isSelected ? 16 : 10 }
 }
 
 // MARK: - Callout overlay
@@ -217,15 +271,12 @@ private struct StationCallout: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(station.name)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(colors.fg)
-                    .lineLimit(1)
-
+                    .foregroundStyle(colors.fg).lineLimit(1)
                 HStack(spacing: 6) {
                     if !station.countryFlag.isEmpty {
                         Text(station.countryFlag).font(.system(size: 11))
                     }
-                    Text(station.countryName)
-                        .font(Typography.meta).foregroundStyle(colors.fg3)
+                    Text(station.countryName).font(Typography.meta).foregroundStyle(colors.fg3)
                     if let codec = station.codecDisplay {
                         Text("·").foregroundStyle(colors.fg4)
                         Text(codec).font(Typography.meta).foregroundStyle(colors.fg3)
@@ -243,8 +294,7 @@ private struct StationCallout: View {
                 Image(systemName: "play.circle.fill")
                     .font(.system(size: 28))
                     .foregroundStyle(colors.accent.accent)
-            }
-            .buttonStyle(.plain)
+            }.buttonStyle(.plain)
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
@@ -253,11 +303,9 @@ private struct StationCallout: View {
                     .frame(width: 24, height: 24)
                     .background(colors.bgHover)
                     .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
+            }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14).padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: AppLayout.rSm)
                 .fill(.ultraThinMaterial)
