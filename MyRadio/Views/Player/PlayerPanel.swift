@@ -426,8 +426,8 @@ private struct UtilityBar: View {
                 .padding(.bottom, 12)
 
             HStack(spacing: 8) {
-                UtilButton(icon: "slider.horizontal.3", label: "EQ",  isActive: false, unavailable: true)
-                UtilButton(icon: "bed.double",          label: "Sleep", isActive: false, unavailable: true)
+                UtilButton(icon: "slider.horizontal.3", label: "EQ",    isActive: false, dimmed: true)
+                UtilButton(icon: "bed.double",          label: "Sleep", isActive: false, dimmed: true)
                 UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: "Mini", isActive: false, action: enterMiniMode)
 
                 let homepage = state.currentStation?.homepage.flatMap { $0.isEmpty ? nil : URL(string: $0) }
