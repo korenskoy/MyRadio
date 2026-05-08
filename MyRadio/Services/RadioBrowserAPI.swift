@@ -78,12 +78,24 @@ actor RadioBrowserAPI {
     }
 
     func stationsWithGeo() async -> [Station] {
-        var q = StationSearchQuery()
-        q.hasGeoInfo = true
-        q.hidebroken = true
-        return await fetch("stationsWithGeo") {
-            try await client.search(q)
-        } ?? []
+        let pageSize = 10_000
+        var all: [Station] = []
+        var offset = 0
+        repeat {
+            var q = StationSearchQuery()
+            q.hasGeoInfo = true
+            q.hidebroken = true
+            q.limit  = pageSize
+            q.offset = offset
+            let page = await fetch("stationsWithGeo[\(offset)]") {
+                try await self.client.search(q)
+            } ?? []
+            all.append(contentsOf: page)
+            log.append(.info, "stationsWithGeo: \(all.count) loaded", source: "rb.client")
+            if page.count < pageSize { break }
+            offset += pageSize
+        } while true
+        return all
     }
 
     // MARK: - Metadata
