@@ -52,8 +52,6 @@ private struct CoverArtView: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .shadow(color: .black.opacity(0.35), radius: 20, x: 0, y: 16)
-                .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 4)
 
             if let artworkImage {
                 Image(nsImage: artworkImage)
@@ -90,6 +88,14 @@ private struct CoverArtView: View {
         }
         .aspectRatio(1, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: AppLayout.rLg))
+        // Shadow must come after clipShape so it isn't clipped away.
+        .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 10)
+        .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+        // Thin border keeps white-background artwork from blending into the panel.
+        .overlay(
+            RoundedRectangle(cornerRadius: AppLayout.rLg)
+                .strokeBorder(.black.opacity(0.08), lineWidth: 0.5)
+        )
         .task(id: station?.stationuuid) {
             guard let station else {
                 artworkImage = nil
