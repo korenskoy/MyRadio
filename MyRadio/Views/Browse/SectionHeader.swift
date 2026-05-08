@@ -60,11 +60,13 @@ struct BrowseButton: View {
                     Image(systemName: icon)
                         .font(.system(size: 11))
                 }
-                Text(label)
-                    .font(.system(size: 12.5, weight: .medium))
+                if !label.isEmpty {
+                    Text(label)
+                        .font(.system(size: 12.5, weight: .medium))
+                }
             }
             .foregroundStyle(foregroundColor)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, label.isEmpty ? 8 : 12)
             .frame(height: 32)
             .background(bgColor)
             .overlay(
