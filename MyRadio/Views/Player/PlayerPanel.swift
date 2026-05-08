@@ -186,57 +186,64 @@ private struct StationMetaView: View {
     @Environment(\.appColors) private var colors
 
     var body: some View {
-        if let station = state.currentStation {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(station.name)
-                    .font(Typography.stationName)
-                    .foregroundStyle(colors.fg)
-                    .tracking(-0.5)
-                    .lineLimit(1)
-                    .padding(.bottom, 6)
+        let station = state.currentStation
+        let tags = station.map { Array($0.tagList.prefix(4)) } ?? []
 
-                // Country · language · votes
-                HStack(spacing: 8) {
-                    Text(station.countryFlag)
-                        .font(.system(size: 14))
-                    Text(station.countryName)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(station?.name ?? " ")
+                .font(Typography.stationName)
+                .foregroundStyle(colors.fg)
+                .tracking(-0.5)
+                .lineLimit(1)
+                .padding(.bottom, 6)
+
+            // Country · language · votes
+            HStack(spacing: 8) {
+                Text(station?.countryFlag ?? "  ")
+                    .font(.system(size: 14))
+                Text(station?.countryName ?? "—")
+                    .font(.system(size: 12))
+                    .foregroundStyle(colors.fg2)
+                Text("·")
+                    .foregroundStyle(colors.fg4)
+                Text(station?.language ?? "—")
+                    .font(.system(size: 12))
+                    .foregroundStyle(colors.fg2)
+                Text("·")
+                    .foregroundStyle(colors.fg4)
+                HStack(spacing: 2) {
+                    Text(station?.votesLocalized ?? "0")
                         .font(.system(size: 12))
                         .foregroundStyle(colors.fg2)
-                    Text("·")
-                        .foregroundStyle(colors.fg4)
-                    Text(station.language ?? "—")
-                        .font(.system(size: 12))
+                    Text("★")
+                        .font(.system(size: 11))
                         .foregroundStyle(colors.fg2)
-                    Text("·")
-                        .foregroundStyle(colors.fg4)
-                    HStack(spacing: 2) {
-                        Text(station.votesLocalized)
-                            .font(.system(size: 12))
-                            .foregroundStyle(colors.fg2)
-                        Text("★")
-                            .font(.system(size: 11))
-                            .foregroundStyle(colors.fg2)
-                    }
                 }
-                .padding(.top, 8)
-
-                // Tags
-                HStack(spacing: 6) {
-                    ForEach(station.tagList.prefix(4), id: \.self) { tag in
-                        Text(tag)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(colors.fg2)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 3)
-                            .background(colors.bgPill)
-                            .clipShape(Capsule())
-                    }
-                }
-                .padding(.top, 10)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 22)
+            .padding(.top, 8)
+
+            // Tags — invisible sentinel keeps row height when tags list is empty
+            HStack(spacing: 6) {
+                ForEach(tags, id: \.self) { tag in
+                    Text(tag)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(colors.fg2)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(colors.bgPill)
+                        .clipShape(Capsule())
+                }
+                Text(" ")
+                    .font(.system(size: 11, weight: .medium))
+                    .padding(.vertical, 3)
+                    .opacity(0)
+            }
+            .padding(.top, 10)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 22)
+        .opacity(station == nil ? 0 : 1)
+        .animation(.easeInOut(duration: 0.15), value: station?.stationuuid)
     }
 }
 
