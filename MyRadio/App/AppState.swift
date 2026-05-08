@@ -9,6 +9,7 @@ final class AppState {
     let streamPlayer = StreamPlayer()
     private let persistence = Persistence()
     private var cache: StationCache?
+    private var nowPlayingController: NowPlayingController?
 
     // MARK: - Playback
     var currentStation: Station?
@@ -96,6 +97,7 @@ final class AppState {
 
     init() {
         streamPlayer.configure(log: debugLog)
+        nowPlayingController = NowPlayingController(state: self)
         debugLog.append(.info, "Application started · MyRadio v1.0.0", source: "app.boot")
 
         Task { @MainActor [weak self] in
