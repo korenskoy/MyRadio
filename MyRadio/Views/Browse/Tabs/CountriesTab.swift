@@ -14,7 +14,10 @@ struct CountriesTab: View {
 
     private var sortedCountries: [NamedCount] {
         if sortByName {
-            state.apiCountries.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            state.apiCountries.sorted {
+                CountryFlag.displayName(for: $0.name)
+                    .localizedCaseInsensitiveCompare(CountryFlag.displayName(for: $1.name)) == .orderedAscending
+            }
         } else {
             state.apiCountries
         }
@@ -72,7 +75,8 @@ struct CountriesTab: View {
                 .frame(maxWidth: .infinity, minHeight: 200)
         } else {
             LazyVGrid(columns: [
-                GridItem(.adaptive(minimum: 180), spacing: 8)
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8),
             ], spacing: 8) {
                 ForEach(sortedCountries) { country in
                     CountryCard(country: country) {
