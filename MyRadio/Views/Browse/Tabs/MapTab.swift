@@ -37,7 +37,7 @@ struct MapTab: View {
                     selectedStation = nil
                 }
                 Spacer()
-                Text("\(geoStations.count) stations with coordinates")
+                Text("\(geoStations.count) stations")
                     .font(Typography.meta)
                     .foregroundStyle(colors.fg3)
                 BrowseButton(label: "", icon: "arrow.clockwise", style: .ghost) {
