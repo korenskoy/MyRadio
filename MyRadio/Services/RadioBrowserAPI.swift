@@ -71,6 +71,12 @@ actor RadioBrowserAPI {
         } ?? []
     }
 
+    func stationsByURL(_ url: String) async -> [Station] {
+        await fetch("stationsByURL(\(url))") {
+            try await client.stationsByURL(url)
+        } ?? []
+    }
+
     func stationsWithGeo(limit: Int = 500) async -> [Station] {
         var q = StationSearchQuery()
         q.hasGeoInfo = true

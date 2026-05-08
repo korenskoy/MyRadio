@@ -274,20 +274,30 @@ final class AppState {
         }
     }
 
-    func importM3U(_ text: String) {
+    func importM3U(_ text: String) async {
         let parsed = M3UParser.parse(text)
         guard !parsed.isEmpty else {
             debugLog.append(.warn, "M3U import: no stations found", source: "custom")
             return
         }
-        for custom in parsed { autoFavoriteCustom(custom) }
-        customStations.append(contentsOf: parsed)
-        Task {
-            await persistence.saveCustomStations(customStations)
-            await persistence.saveFavorites(favorites)
-            await persistence.saveFavoriteStations(favoriteStationData)
+        var matched = 0
+        for custom in parsed {
+            if let rbk = await cache?.stationsByURL(custom.url).first {
+                if !favorites.contains(rbk.stationuuid) {
+                    favorites.append(rbk.stationuuid)
+                    favoriteStationData[rbk.stationuuid] = rbk
+                }
+                matched += 1
+            } else {
+                autoFavoriteCustom(custom)
+                customStations.append(custom)
+            }
         }
-        debugLog.append(.info, "Imported \(parsed.count) stations from M3U", source: "custom")
+        await persistence.saveCustomStations(customStations)
+        await persistence.saveFavorites(favorites)
+        await persistence.saveFavoriteStations(favoriteStationData)
+        let custom = parsed.count - matched
+        debugLog.append(.info, "M3U import: \(matched) matched in RBK, \(custom) added as custom", source: "custom")
     }
 
     private func autoFavoriteCustom(_ custom: CustomStation) {

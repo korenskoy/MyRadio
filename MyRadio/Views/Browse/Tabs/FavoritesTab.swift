@@ -36,7 +36,7 @@ struct FavoritesTab: View {
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return }
-        state.importM3U(text)
+        Task { await state.importM3U(text) }
     }
 
     private func exportM3U() {
