@@ -74,16 +74,16 @@ struct CountriesTab: View {
             ContentUnavailableView("Loading countries…", systemImage: "globe")
                 .frame(maxWidth: .infinity, minHeight: 200)
         } else {
-            let pairs = stride(from: 0, to: sortedCountries.count, by: 2).map { i in
-                (sortedCountries[i], i + 1 < sortedCountries.count ? sortedCountries[i + 1] : nil)
+            let rows = stride(from: 0, to: sortedCountries.count, by: 3).map { i in
+                (0..<3).compactMap { j in i + j < sortedCountries.count ? sortedCountries[i + j] : nil }
             }
             VStack(spacing: 8) {
-                ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                     HStack(spacing: 8) {
-                        CountryCard(country: pair.0) { onSelect(pair.0) }
-                        if let right = pair.1 {
-                            CountryCard(country: right) { onSelect(right) }
-                        } else {
+                        ForEach(row) { country in
+                            CountryCard(country: country) { onSelect(country) }
+                        }
+                        ForEach(0..<(3 - row.count), id: \.self) { _ in
                             Color.clear.frame(maxWidth: .infinity)
                         }
                     }
