@@ -273,6 +273,30 @@ enum CountryFlag {
         "cocos keeling islands":                            "CC",
         // Svalbard and Jan Mayen
         "svalbard and jan mayen":                           "SJ",
+        // Venezuela (alternate word order)
+        "bolivarian republic of venezuela":                 "VE",
+        // Taiwan
+        "taiwan, republic of china":                        "TW",
+        "republic of china":                                "TW",
+        // Holy See / Vatican
+        "holy see":                                         "VA",
+        "vatican":                                          "VA",
+        // US Minor Outlying Islands
+        "united states minor outlying islands":             "UM",
+        // Timor-Leste (no hyphen in API)
+        "timor leste":                                      "TL",
+        "east timor":                                       "TL",
+        // Tanzania (alternate word order)
+        "united republic of tanzania":                      "TZ",
+        // US Virgin Islands
+        "us virgin islands":                                "VI",
+        "u.s. virgin islands":                              "VI",
+        "united states virgin islands":                     "VI",
+        // Wallis and Futuna
+        "wallis and futuna":                                "WF",
+        "wallis & futuna":                                  "WF",
+        // Saint Helena (alternate word order with correct spelling)
+        "ascension and tristan da cunha saint helena":      "SH",
         // Misc
         "trinidad and tobago":                              "TT",
         "saint kitts and nevis":                            "KN",
