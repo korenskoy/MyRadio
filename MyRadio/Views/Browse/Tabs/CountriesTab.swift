@@ -172,31 +172,108 @@ enum CountryFlag {
 
     // Known API names that don't match locale strings even after stripping "The".
     private static let aliases: [String: String] = [
-        "russian federation":              "RU",
-        "united states of america":        "US",
-        "korea, republic of":              "KR",
-        "republic of korea":               "KR",
-        "korea, democratic people's republic of": "KP",
-        "iran, islamic republic of":       "IR",
-        "syrian arab republic":            "SY",
-        "viet nam":                        "VN",
-        "czech republic":                  "CZ",
-        "republic of moldova":             "MD",
-        "tanzania, united republic of":    "TZ",
-        "taiwan, province of china":       "TW",
-        "bolivia, plurinational state of": "BO",
-        "venezuela, bolivarian republic of": "VE",
-        "micronesia, federated states of": "FM",
-        "congo, the democratic republic of the": "CD",
-        "democratic republic of the congo":"CD",
-        "cote d'ivoire":                   "CI",
-        "ivory coast":                     "CI",
-        "trinidad and tobago":             "TT",
-        "saint kitts and nevis":           "KN",
-        "antigua and barbuda":             "AG",
-        "bosnia and herzegovina":          "BA",
-        "saint vincent and the grenadines":"VC",
-        "turks and caicos islands":        "TC",
+        // Russia
+        "russian federation":                               "RU",
+        // USA
+        "united states of america":                         "US",
+        // UK (long official name from API)
+        "united kingdom of great britain and northern ireland": "GB",
+        // Korea
+        "korea, republic of":                               "KR",
+        "republic of korea":                                "KR",
+        "south korea":                                      "KR",
+        "korea, democratic people's republic of":           "KP",
+        "democratic people's republic of korea":            "KP",
+        "democratic peoples republic of korea":             "KP",
+        // Iran
+        "iran, islamic republic of":                        "IR",
+        "islamic republic of iran":                         "IR",
+        // Syria
+        "syrian arab republic":                             "SY",
+        // Vietnam
+        "viet nam":                                         "VN",
+        // Czechia
+        "czech republic":                                   "CZ",
+        // Moldova
+        "republic of moldova":                              "MD",
+        // Tanzania
+        "tanzania, united republic of":                     "TZ",
+        // Taiwan
+        "taiwan, province of china":                        "TW",
+        // Bolivia
+        "bolivia, plurinational state of":                  "BO",
+        // Venezuela
+        "venezuela, bolivarian republic of":                "VE",
+        // Micronesia
+        "micronesia, federated states of":                  "FM",
+        "federated states of micronesia":                   "FM",
+        // Congo
+        "congo, the democratic republic of the":            "CD",
+        "democratic republic of the congo":                 "CD",
+        "dr congo":                                         "CD",
+        "congo":                                            "CG",
+        // Côte d'Ivoire (+ API typos)
+        "cote d'ivoire":                                    "CI",
+        "coted ivoire":                                     "CI",
+        "cote d ivoire":                                    "CI",
+        "ivory coast":                                      "CI",
+        // Palestine (+ API typo "Stete")
+        "state of palestine":                               "PS",
+        "stete of palestine":                               "PS",
+        "palestine":                                        "PS",
+        // North Macedonia
+        "republic of north macedonia":                      "MK",
+        "north macedonia":                                  "MK",
+        // Réunion
+        "reunion":                                          "RE",
+        // Curaçao
+        "curacao":                                          "CW",
+        // Bonaire
+        "bonaire":                                          "BQ",
+        "bonaire, sint eustatius and saba":                 "BQ",
+        // Falkland Islands (API includes "Malvinas")
+        "falkland islands malvinas":                        "FK",
+        "falkland islands (malvinas)":                      "FK",
+        // British Indian Ocean Territory
+        "british indian ocean territory":                   "IO",
+        // Myanmar
+        "myanmar":                                          "MM",
+        // Brunei
+        "brunei darussalam":                                "BN",
+        // Laos
+        "lao people's democratic republic":                 "LA",
+        "lao peoples democratic republic":                  "LA",
+        "laos":                                             "LA",
+        // Cabo Verde
+        "cabo verde":                                       "CV",
+        // Åland Islands
+        "aland islands":                                    "AX",
+        // Saint Pierre and Miquelon (API typo "Miquerlon")
+        "saint pierre and miquelon":                        "PM",
+        "saint pierre and miquerlon":                       "PM",
+        // São Tomé and Príncipe (API typo "Pricipe")
+        "sao tome and principe":                            "ST",
+        "sao tome and pricipe":                             "ST",
+        // Guinea-Bissau
+        "guinea-bissau":                                    "GW",
+        "guinea bissau":                                    "GW",
+        // Saint Helena (API uses long name with typo "Cucha")
+        "saint helena, ascension and tristan da cunha":     "SH",
+        "ascension and tristan da cucha saint helena":      "SH",
+        "saint helena":                                     "SH",
+        // Cocos (Keeling) Islands
+        "cocos (keeling) islands":                          "CC",
+        "cocos keeling islands":                            "CC",
+        // Svalbard and Jan Mayen
+        "svalbard and jan mayen":                           "SJ",
+        // Misc
+        "trinidad and tobago":                              "TT",
+        "saint kitts and nevis":                            "KN",
+        "antigua and barbuda":                              "AG",
+        "bosnia and herzegovina":                           "BA",
+        "saint vincent and the grenadines":                 "VC",
+        "turks and caicos islands":                         "TC",
+        "saint lucia":                                      "LC",
     ]
 }
 
