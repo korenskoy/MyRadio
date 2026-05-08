@@ -32,7 +32,7 @@ struct HistoryTab: View {
                     .padding(.bottom, 10)
 
                     ForEach(group.items) { entry in
-                        if let station = state.stations.first(where: { $0.stationuuid == entry.stationUUID }) {
+                        if let station = state.station(for: entry.stationUUID) {
                             StationRow(
                                 station: station,
                                 index: 0,

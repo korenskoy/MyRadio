@@ -325,6 +325,16 @@ final class AppState {
         return try! JSONDecoder().decode(Station.self, from: data)
     }
 
+    // MARK: - Station lookup
+
+    func station(for uuid: String) -> Station? {
+        if let s = favoriteStationData[uuid] { return s }
+        let all = stations + discoverTopVoted + discoverPopular
+            + topVotedStations + popularStations
+            + searchResults + countryStations + mapStations
+        return all.first { $0.stationuuid == uuid }
+    }
+
     // MARK: - History management
 
     private func recordHistoryForCurrentStation() {
