@@ -42,8 +42,6 @@ struct BrowsePanel: View {
             RankedTab(sortBy: .votes)
         case .popular:
             RankedTab(sortBy: .clicks)
-        case .tags:
-            TagsTab()
         case .countries:
             CountriesTab()
         case .map:

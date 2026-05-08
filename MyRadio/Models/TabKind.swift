@@ -6,7 +6,6 @@ enum TabKind: String, Codable, CaseIterable, Identifiable {
     case search
     case topVoted   = "top_voted"
     case popular
-    case tags
     case countries
     case map
     case history
@@ -20,7 +19,6 @@ enum TabKind: String, Codable, CaseIterable, Identifiable {
         case .search:    return "Search"
         case .topVoted:  return "Top voted"
         case .popular:   return "Popular"
-        case .tags:      return "Tags"
         case .countries: return "Countries"
         case .map:       return "Map"
         case .history:   return "History"
@@ -34,7 +32,6 @@ enum TabKind: String, Codable, CaseIterable, Identifiable {
         case .search:    return "magnifyingglass"
         case .topVoted:  return "chart.line.uptrend.xyaxis"
         case .popular:   return "flame.fill"
-        case .tags:      return "tag"
         case .countries: return "globe"
         case .map:       return "map"
         case .history:   return "clock"

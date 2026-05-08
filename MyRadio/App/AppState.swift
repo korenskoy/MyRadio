@@ -42,17 +42,14 @@ final class AppState {
     var topVotedStations: [Station] = []
     var popularStations: [Station] = []
     var searchResults: [Station] = []
-    var tagStations: [Station] = []
     var countryStations: [Station] = []
     var mapStations: [Station] = []
-    var apiTags: [NamedCount] = []
     var apiCountries: [NamedCount] = []
 
     // MARK: - Loading states
     var isLoadingTab = false
 
-    // MARK: - Tag/Country selection
-    var selectedTag: String?
+    // MARK: - Country selection
     var selectedCountryCode: String?
 
     // MARK: - Debug panel
@@ -86,7 +83,7 @@ final class AppState {
             if let station = favoriteStationData[uuid] { return station }
             let allStations = stations + discoverTopVoted + discoverPopular
                 + topVotedStations + popularStations
-                + searchResults + tagStations + countryStations + mapStations
+                + searchResults + countryStations + mapStations
             return allStations.first { $0.stationuuid == uuid }
         }
     }
@@ -203,11 +200,6 @@ final class AppState {
             }
             searchResults = await cache.search(name: searchQuery)
 
-        case .tags:
-            if apiTags.isEmpty {
-                apiTags = await cache.tags()
-            }
-
         case .countries:
             if apiCountries.isEmpty {
                 apiCountries = await cache.countries()
@@ -221,12 +213,6 @@ final class AppState {
         case .favorites, .history:
             break
         }
-    }
-
-    func loadStationsForTag(_ tag: String) async {
-        guard let cache else { return }
-        selectedTag = tag
-        tagStations = await cache.stationsByTag(tag)
     }
 
     func loadStationsForCountry(_ name: String) async {
