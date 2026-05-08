@@ -3,14 +3,16 @@ import MapKit
 import RadioBrowserKit
 
 private let DEFAULT_MAP_CENTER = CLLocationCoordinate2D(latitude: 20, longitude: 0)
-private let DEFAULT_MAP_SPAN = MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 360)
+private let DEFAULT_MAP_SPAN   = MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 360)
 
 struct MapTab: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
 
     @State private var selectedStationId: String?
-    @State private var mapPosition = MapCameraPosition.region(
+    @State private var clusterMode = false
+    @State private var currentSpan  = DEFAULT_MAP_SPAN
+    @State private var mapPosition  = MapCameraPosition.region(
         MKCoordinateRegion(center: DEFAULT_MAP_CENTER, span: DEFAULT_MAP_SPAN)
     )
 
@@ -23,14 +25,31 @@ struct MapTab: View {
         return geoStations.first { $0.stationuuid == id }
     }
 
+    // Grid-based O(n) clustering: cell size scales with current zoom span.
+    private var clusters: [StationCluster] {
+        let cell = max(currentSpan.latitudeDelta * 0.04, 0.3)
+        var grid: [String: [Station]] = [:]
+        for s in geoStations {
+            let key = "\(Int((s.geoLat ?? 0) / cell)):\(Int((s.geoLong ?? 0) / cell))"
+            grid[key, default: []].append(s)
+        }
+        return grid.values.map { StationCluster(stations: $0) }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ToolbarRow(subtitle: "\(geoStations.count) stations with coordinates") {
                 BrowseButton(label: "Show all", icon: "map", style: .primary) {
                     resetToWorldView()
                 }
-                BrowseButton(label: "Cluster", icon: "circle.grid.3x3") {}
-                BrowseButton(label: "Heatmap", icon: "flame") {}
+                BrowseButton(
+                    label: "Cluster",
+                    icon: "circle.grid.3x3",
+                    style: clusterMode ? .primary : .normal
+                ) {
+                    clusterMode.toggle()
+                    selectedStationId = nil
+                }
                 Spacer()
                 BrowseButton(label: "", icon: "arrow.clockwise", style: .ghost) {
                     Task { await reloadStations() }
@@ -38,14 +57,30 @@ struct MapTab: View {
             }
 
             Map(position: $mapPosition) {
-                ForEach(geoStations) { station in
-                    Annotation(station.name, coordinate: station.coordinate) {
-                        StationPin(
-                            station: station,
-                            isSelected: selectedStationId == station.stationuuid
-                        )
-                        .onTapGesture {
-                            selectedStationId = station.stationuuid
+                if clusterMode {
+                    ForEach(clusters) { cluster in
+                        if cluster.stations.count == 1, let s = cluster.stations.first {
+                            // Single station — normal pin
+                            Annotation(s.name, coordinate: s.coordinate) {
+                                StationPin(station: s, isSelected: selectedStationId == s.stationuuid)
+                                    .onTapGesture { selectedStationId = s.stationuuid }
+                            }
+                        } else {
+                            // Cluster pin
+                            Annotation("", coordinate: cluster.coordinate) {
+                                ClusterPin(count: cluster.stations.count)
+                                    .onTapGesture { zoomInto(cluster) }
+                            }
+                        }
+                    }
+                } else {
+                    ForEach(geoStations) { station in
+                        Annotation(station.name, coordinate: station.coordinate) {
+                            StationPin(
+                                station: station,
+                                isSelected: selectedStationId == station.stationuuid
+                            )
+                            .onTapGesture { selectedStationId = station.stationuuid }
                         }
                     }
                 }
@@ -55,6 +90,9 @@ struct MapTab: View {
             .mapControls {
                 MapZoomStepper()
                 MapCompass()
+            }
+            .onMapCameraChange { ctx in
+                currentSpan = ctx.region.span
             }
             .clipShape(RoundedRectangle(cornerRadius: AppLayout.rMd))
             .overlay(
@@ -76,10 +114,10 @@ struct MapTab: View {
         }
     }
 
+    // MARK: - Helpers
+
     private func resetToWorldView() {
-        mapPosition = .region(
-            MKCoordinateRegion(center: DEFAULT_MAP_CENTER, span: DEFAULT_MAP_SPAN)
-        )
+        mapPosition = .region(MKCoordinateRegion(center: DEFAULT_MAP_CENTER, span: DEFAULT_MAP_SPAN))
         selectedStationId = nil
     }
 
@@ -87,20 +125,63 @@ struct MapTab: View {
         state.mapStations = []
         await state.loadTabData(for: .map)
     }
+
+    private func zoomInto(_ cluster: StationCluster) {
+        let lats  = cluster.stations.compactMap { $0.geoLat }
+        let lons  = cluster.stations.compactMap { $0.geoLong }
+        guard !lats.isEmpty else { return }
+        let latSpan = (lats.max()! - lats.min()!) * 1.5 + 1
+        let lonSpan = (lons.max()! - lons.min()!) * 1.5 + 1
+        withAnimation(.easeInOut(duration: 0.4)) {
+            mapPosition = .region(MKCoordinateRegion(
+                center: cluster.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: latSpan, longitudeDelta: lonSpan)
+            ))
+        }
+    }
+}
+
+// MARK: - Station cluster model
+
+private struct StationCluster: Identifiable {
+    let id = UUID()
+    let stations: [Station]
+
+    var coordinate: CLLocationCoordinate2D {
+        let lat = stations.compactMap { $0.geoLat }.reduce(0, +) / Double(stations.count)
+        let lon = stations.compactMap { $0.geoLong }.reduce(0, +) / Double(stations.count)
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
 }
 
 // MARK: - Station coordinate helper
 
 private extension Station {
     var coordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(
-            latitude: geoLat ?? 0,
-            longitude: geoLong ?? 0
-        )
+        CLLocationCoordinate2D(latitude: geoLat ?? 0, longitude: geoLong ?? 0)
     }
 }
 
-// MARK: - Pin view
+// MARK: - Cluster pin
+
+private struct ClusterPin: View {
+    let count: Int
+    @Environment(\.appColors) private var colors
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(colors.accent.accent.opacity(0.85))
+                .frame(width: 32, height: 32)
+            Text(count < 1000 ? "\(count)" : "\(count / 1000)k")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(colors.accent.fg)
+        }
+        .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+    }
+}
+
+// MARK: - Station pin
 
 private struct StationPin: View {
     let station: Station
@@ -112,14 +193,13 @@ private struct StationPin: View {
             .frame(width: pinSize, height: pinSize)
             .overlay(
                 Circle()
-                    .strokeBorder(isSelected ? Color.white : Color.white.opacity(0.5), lineWidth: isSelected ? 2 : 1)
+                    .strokeBorder(isSelected ? Color.white : Color.white.opacity(0.5),
+                                  lineWidth: isSelected ? 2 : 1)
             )
             .shadow(color: .black.opacity(0.25), radius: isSelected ? 4 : 2, y: 1)
     }
 
-    private var pinSize: CGFloat {
-        isSelected ? 16 : 10
-    }
+    private var pinSize: CGFloat { isSelected ? 16 : 10 }
 }
 
 // MARK: - Callout overlay
@@ -132,12 +212,7 @@ private struct StationCallout: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            StationArtwork(
-                station: station,
-                size: 36,
-                cornerRadius: 6,
-                glyphSize: 14
-            )
+            StationArtwork(station: station, size: 36, cornerRadius: 6, glyphSize: 14)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(station.name)
@@ -147,25 +222,17 @@ private struct StationCallout: View {
 
                 HStack(spacing: 6) {
                     if !station.countryFlag.isEmpty {
-                        Text(station.countryFlag)
-                            .font(.system(size: 11))
+                        Text(station.countryFlag).font(.system(size: 11))
                     }
                     Text(station.countryName)
-                        .font(Typography.meta)
-                        .foregroundStyle(colors.fg3)
+                        .font(Typography.meta).foregroundStyle(colors.fg3)
                     if let codec = station.codecDisplay {
-                        Text("·")
-                            .foregroundStyle(colors.fg4)
-                        Text(codec)
-                            .font(Typography.meta)
-                            .foregroundStyle(colors.fg3)
+                        Text("·").foregroundStyle(colors.fg4)
+                        Text(codec).font(Typography.meta).foregroundStyle(colors.fg3)
                     }
                     if let br = station.bitrateFormatted {
-                        Text("·")
-                            .foregroundStyle(colors.fg4)
-                        Text(br)
-                            .font(Typography.meta)
-                            .foregroundStyle(colors.fg3)
+                        Text("·").foregroundStyle(colors.fg4)
+                        Text(br).font(Typography.meta).foregroundStyle(colors.fg3)
                     }
                 }
             }
