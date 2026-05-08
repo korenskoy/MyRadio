@@ -74,21 +74,30 @@ struct CountriesTab: View {
             ContentUnavailableView("Loading countries…", systemImage: "globe")
                 .frame(maxWidth: .infinity, minHeight: 200)
         } else {
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 8),
-                GridItem(.flexible(), spacing: 8),
-            ], spacing: 8) {
-                ForEach(sortedCountries) { country in
-                    CountryCard(country: country) {
-                        selectedCountry = country
-                        isLoadingStations = true
-                        Task {
-                            await state.loadStationsForCountry(country.name)
-                            isLoadingStations = false
+            let pairs = stride(from: 0, to: sortedCountries.count, by: 2).map { i in
+                (sortedCountries[i], i + 1 < sortedCountries.count ? sortedCountries[i + 1] : nil)
+            }
+            VStack(spacing: 8) {
+                ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
+                    HStack(spacing: 8) {
+                        CountryCard(country: pair.0) { onSelect(pair.0) }
+                        if let right = pair.1 {
+                            CountryCard(country: right) { onSelect(right) }
+                        } else {
+                            Color.clear.frame(maxWidth: .infinity)
                         }
                     }
                 }
             }
+        }
+    }
+
+    private func onSelect(_ country: NamedCount) {
+        selectedCountry = country
+        isLoadingStations = true
+        Task {
+            await state.loadStationsForCountry(country.name)
+            isLoadingStations = false
         }
     }
 
