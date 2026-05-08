@@ -24,9 +24,9 @@ struct RootView: View {
                 BrowsePanel()
                     .frame(maxWidth: .infinity)
             }
-            .frame(height: AppLayout.contentHeight)
+            .frame(maxHeight: .infinity)
         }
-        .frame(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
+        .frame(width: AppLayout.windowWidth)
         .background(colors.bgWindow)
         .environment(\.appColors, colors)
         .sheet(isPresented: Bindable(state).showAddStation) {
