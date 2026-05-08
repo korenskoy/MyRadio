@@ -58,11 +58,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = false
         window.styleMask.insert(.fullSizeContentView)
+        window.styleMask.remove(.resizable)
         let size = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
         window.minSize = size
         window.maxSize = size
-        window.styleMask.remove(.resizable)
+        window.setContentSize(size)
         window.standardWindowButton(.zoomButton)?.isEnabled = false
+
+        // SwiftUI can restore .resizable — strip it every time the window updates.
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didUpdateNotification,
+            object: window,
+            queue: .main
+        ) { [weak window] _ in
+            window?.styleMask.remove(.resizable)
+        }
     }
 
     // Centers traffic lights at the vertical midpoint of our 38-pt titlebar.
