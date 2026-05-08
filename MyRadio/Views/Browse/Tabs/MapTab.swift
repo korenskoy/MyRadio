@@ -50,6 +50,7 @@ struct MapTab: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .mapStyle(.standard(elevation: .flat, emphasis: .muted))
             .mapControls {
                 MapZoomStepper()
