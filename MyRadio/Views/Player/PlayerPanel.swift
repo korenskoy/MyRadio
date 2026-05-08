@@ -426,10 +426,18 @@ private struct UtilityBar: View {
                 .padding(.bottom, 12)
 
             HStack(spacing: 8) {
-                UtilButton(icon: "slider.horizontal.3", label: "EQ", isActive: false)
-                UtilButton(icon: "bed.double", label: "Sleep", isActive: false)
+                UtilButton(icon: "slider.horizontal.3", label: "EQ",  isActive: false, unavailable: true)
+                UtilButton(icon: "bed.double",          label: "Sleep", isActive: false, unavailable: true)
                 UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: "Mini", isActive: false, action: enterMiniMode)
-                UtilButton(icon: "square.and.arrow.up", label: nil, isActive: false)
+
+                let homepage = state.currentStation?.homepage.flatMap { $0.isEmpty ? nil : $0 }
+                UtilButton(icon: "square.and.arrow.up", label: nil, isActive: false,
+                           dimmed: homepage == nil) {
+                    if let url = homepage {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(url, forType: .string)
+                    }
+                }
             }
         }
         .padding(.top, 12)
@@ -454,11 +462,17 @@ private struct UtilButton: View {
     let icon: String
     let label: String?
     let isActive: Bool
+    var unavailable: Bool = false
+    var dimmed: Bool = false
     var action: (() -> Void)?
     @Environment(\.appColors) private var colors
+    @State private var hovered = false
 
     var body: some View {
-        Button { action?() } label: {
+        Button {
+            guard !unavailable && !dimmed else { return }
+            action?()
+        } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
@@ -468,6 +482,7 @@ private struct UtilButton: View {
                 }
             }
             .foregroundStyle(isActive ? colors.accent.strong : colors.fg2)
+            .opacity(dimmed ? 0.35 : 1)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 7)
             .padding(.horizontal, 10)
@@ -481,5 +496,12 @@ private struct UtilButton: View {
             )
         }
         .buttonStyle(.plain)
+        .onHover { isHovered in
+            hovered = isHovered
+            if unavailable {
+                if isHovered { NSCursor.operationNotAllowed.push() }
+                else { NSCursor.pop() }
+            }
+        }
     }
 }
