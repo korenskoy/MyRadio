@@ -288,16 +288,12 @@ final class AppState {
                     favoriteStationData[rbk.stationuuid] = rbk
                 }
                 matched += 1
-            } else {
-                autoFavoriteCustom(custom)
-                customStations.append(custom)
             }
         }
-        await persistence.saveCustomStations(customStations)
         await persistence.saveFavorites(favorites)
         await persistence.saveFavoriteStations(favoriteStationData)
-        let custom = parsed.count - matched
-        debugLog.append(.info, "M3U import: \(matched) matched in RBK, \(custom) added as custom", source: "custom")
+        let skipped = parsed.count - matched
+        debugLog.append(.info, "M3U import: \(matched) matched in RBK, \(skipped) not found (skipped)", source: "custom")
     }
 
     private func autoFavoriteCustom(_ custom: CustomStation) {
