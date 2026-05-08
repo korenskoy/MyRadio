@@ -9,18 +9,27 @@ struct BrowsePanel: View {
             SearchBar()
             TabsBar()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if state.isLoadingTab {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, minHeight: 100)
-                    } else {
-                        tabContent
-                    }
+            if state.activeTab == .map {
+                // Map needs a fixed container, not a ScrollView
+                if state.isLoadingTab {
+                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    MapTab().padding(12)
                 }
-                .padding(.horizontal, 22)
-                .padding(.top, 16)
-                .padding(.bottom, 22)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if state.isLoadingTab {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, minHeight: 100)
+                        } else {
+                            tabContent
+                        }
+                    }
+                    .padding(.horizontal, 22)
+                    .padding(.top, 16)
+                    .padding(.bottom, 22)
+                }
             }
         }
         .background(colors.bgWindow)
