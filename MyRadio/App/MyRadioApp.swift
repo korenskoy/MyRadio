@@ -13,7 +13,6 @@ struct MyRadioApp: App {
                 .ignoresSafeArea()
         }
         .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
         .defaultSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
         .commands {}
 
@@ -54,8 +53,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = false
         window.styleMask.insert(.fullSizeContentView)
-        window.minSize = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
-        window.maxSize = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
+        let size = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
+        window.minSize = size
+        window.maxSize = size
+        window.styleMask.remove(.resizable)
         window.standardWindowButton(.zoomButton)?.isEnabled = false
     }
 
