@@ -62,7 +62,7 @@ actor StationCache {
         await api.stationsByURL(url)
     }
 
-    func stationsWithGeo(limit: Int = 500) async -> [Station] {
+    func stationsWithGeo(limit: Int = 5000) async -> [Station] {
         await cached("geo-\(limit)") { await self.api.stationsWithGeo(limit: limit) }
     }
 
