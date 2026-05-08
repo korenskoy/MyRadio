@@ -1,4 +1,5 @@
 import Foundation
+import RadioBrowserKit
 
 enum M3UParser {
     static func parse(_ text: String) -> [CustomStation] {
@@ -43,9 +44,18 @@ enum M3UParser {
 
     static func export(_ stations: [CustomStation]) -> String {
         var lines = ["#EXTM3U"]
-        for station in stations {
-            lines.append("#EXTINF:-1,\(station.name)")
-            lines.append(station.url)
+        for s in stations {
+            lines.append("#EXTINF:-1,\(s.name)")
+            lines.append(s.url)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    static func export(_ stations: [Station]) -> String {
+        var lines = ["#EXTM3U"]
+        for s in stations {
+            lines.append("#EXTINF:-1,\(s.name)")
+            lines.append(s.urlResolved ?? s.url)
         }
         return lines.joined(separator: "\n")
     }

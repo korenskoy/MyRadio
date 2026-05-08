@@ -40,7 +40,7 @@ struct FavoritesTab: View {
     }
 
     private func exportM3U() {
-        let m3uText = M3UParser.export(state.customStations)
+        let m3uText = M3UParser.export(state.favoriteStations)
 
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.init(filenameExtension: "m3u")!]

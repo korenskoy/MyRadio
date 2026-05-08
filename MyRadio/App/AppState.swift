@@ -252,13 +252,26 @@ final class AppState {
             addedAt: Date()
         )
         customStations.append(station)
-        Task { await persistence.saveCustomStations(customStations) }
+        autoFavoriteCustom(station)
+        Task {
+            await persistence.saveCustomStations(customStations)
+            await persistence.saveFavorites(favorites)
+            await persistence.saveFavoriteStations(favoriteStationData)
+        }
         debugLog.append(.info, "Added custom station: \(name)", source: "custom")
     }
 
     func removeCustomStation(id: UUID) {
+        guard let custom = customStations.first(where: { $0.id == id }) else { return }
         customStations.removeAll { $0.id == id }
-        Task { await persistence.saveCustomStations(customStations) }
+        let uuid = custom.id.uuidString
+        favorites.removeAll { $0 == uuid }
+        favoriteStationData.removeValue(forKey: uuid)
+        Task {
+            await persistence.saveCustomStations(customStations)
+            await persistence.saveFavorites(favorites)
+            await persistence.saveFavoriteStations(favoriteStationData)
+        }
     }
 
     func importM3U(_ text: String) {
@@ -267,9 +280,21 @@ final class AppState {
             debugLog.append(.warn, "M3U import: no stations found", source: "custom")
             return
         }
+        for custom in parsed { autoFavoriteCustom(custom) }
         customStations.append(contentsOf: parsed)
-        Task { await persistence.saveCustomStations(customStations) }
+        Task {
+            await persistence.saveCustomStations(customStations)
+            await persistence.saveFavorites(favorites)
+            await persistence.saveFavoriteStations(favoriteStationData)
+        }
         debugLog.append(.info, "Imported \(parsed.count) stations from M3U", source: "custom")
+    }
+
+    private func autoFavoriteCustom(_ custom: CustomStation) {
+        let station = customStationAsStation(custom)
+        guard !favorites.contains(station.stationuuid) else { return }
+        favorites.append(station.stationuuid)
+        favoriteStationData[station.stationuuid] = station
     }
 
     func customStationAsStation(_ custom: CustomStation) -> Station {
