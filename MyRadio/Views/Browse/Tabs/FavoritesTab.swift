@@ -18,7 +18,6 @@ struct FavoritesTab: View {
                     exportM3U()
                 }
                 Spacer()
-                BrowseButton(label: "", icon: "arrow.up.arrow.down", style: .ghost)
             }
 
             StationListSection(stations: state.favoriteStations)
