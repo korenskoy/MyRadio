@@ -223,6 +223,12 @@ final class AppState {
         await loadTabData(for: .map)
     }
 
+    func reloadCountries() async {
+        cache?.invalidateCountries()
+        apiCountries = []
+        await loadTabData(for: .countries)
+    }
+
     func loadStationsForCountry(_ name: String) async {
         guard let cache else { return }
         selectedCountryCode = name

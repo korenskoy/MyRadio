@@ -107,11 +107,19 @@ actor RadioBrowserAPI {
         return result.sorted { $0.stationcount > $1.stationcount }
     }
 
-    func countries(limit: Int = 200) async -> [NamedCount] {
-        let result: [NamedCount] = await fetch("countries") {
-            try await client.countries(limit: limit)
-        } ?? []
-        return result.sorted { $0.stationcount > $1.stationcount }
+    func countries() async -> [NamedCount] {
+        let pageSize = 100
+        var all: [NamedCount] = []
+        var offset = 0
+        repeat {
+            let page: [NamedCount] = await fetch("countries[\(offset)]") {
+                try await self.client.countries(offset: offset, limit: pageSize)
+            } ?? []
+            all.append(contentsOf: page)
+            if page.count < pageSize { break }
+            offset += pageSize
+        } while true
+        return all.sorted { $0.stationcount > $1.stationcount }
     }
 
     // MARK: - Interactions (throttled)

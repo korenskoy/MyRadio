@@ -306,10 +306,12 @@ private struct LogsTabView: View {
                     .font(Typography.debugLog)
                     .foregroundStyle(colors.fgDebug)
                     .lineLimit(1)
+                    .textSelection(.enabled)
                 Text(entry.source)
                     .font(.system(size: 10.5, design: .monospaced))
                     .foregroundStyle(colors.fgDebug2)
                     .padding(.leading, 8)
+                    .textSelection(.enabled)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .lineLimit(1)

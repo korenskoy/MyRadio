@@ -72,8 +72,14 @@ actor StationCache {
         await cached("tags-\(limit)") { await self.api.tags(limit: limit) }
     }
 
-    func countries(limit: Int = 200) async -> [NamedCount] {
-        await cached("countries-\(limit)") { await self.api.countries(limit: limit) }
+    func countries() async -> [NamedCount] {
+        await cached("countries-all") { await self.api.countries() }
+    }
+
+    func invalidateCountries() {
+        let file = cacheDir.appendingPathComponent("countries-all.json")
+        try? FileManager.default.removeItem(at: file)
+        log.append(.info, "Countries cache invalidated", source: "cache")
     }
 
     // MARK: - Pass-through

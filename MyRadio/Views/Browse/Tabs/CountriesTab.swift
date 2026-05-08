@@ -34,7 +34,7 @@ struct CountriesTab: View {
 
     @ViewBuilder
     private var countriesList: some View {
-        ToolbarRow(subtitle: "\(state.apiCountries.count) countries · \(totalStations.formatted()) stations total") {
+        ToolbarRow {
             HStack(spacing: 0) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 11))
@@ -58,6 +58,13 @@ struct CountriesTab: View {
                 style: .ghost,
                 action: { sortByName.toggle() }
             )
+            Spacer()
+            Text("\(state.apiCountries.count) countries · \(totalStations.formatted()) stations")
+                .font(Typography.meta)
+                .foregroundStyle(colors.fg3)
+            BrowseButton(label: "", icon: "arrow.clockwise", style: .ghost) {
+                Task { await state.reloadCountries() }
+            }
         }
 
         if state.apiCountries.isEmpty {
