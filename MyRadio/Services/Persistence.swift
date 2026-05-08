@@ -43,6 +43,16 @@ actor Persistence {
         save(history, to: "history.json")
     }
 
+    // MARK: - Preferences (volume + active tab)
+
+    func loadPreferences() -> Preferences? {
+        load("preferences.json")
+    }
+
+    func savePreferences(_ prefs: Preferences) {
+        save(prefs, to: "preferences.json")
+    }
+
     // MARK: - Custom stations
 
     func loadCustomStations() -> [CustomStation] {
@@ -112,6 +122,13 @@ actor Persistence {
         try? fm.removeItem(at: backup1)
         try? fm.copyItem(at: primaryURL, to: backup1)
     }
+}
+
+// MARK: - Preferences model
+
+struct Preferences: Codable {
+    var volume: Float
+    var activeTab: TabKind
 }
 
 // MARK: - Coders

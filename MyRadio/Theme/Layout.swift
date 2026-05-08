@@ -4,7 +4,7 @@ enum AppLayout {
     // Window
     static let windowWidth:    CGFloat = 1280
     static let titlebarHeight: CGFloat = 38
-    static let contentHeight:  CGFloat = 760
+    static let contentHeight:  CGFloat = 708
     static let windowHeight:   CGFloat = titlebarHeight + contentHeight  // 798
 
     // Panels

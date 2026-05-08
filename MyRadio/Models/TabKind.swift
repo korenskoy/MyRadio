@@ -1,6 +1,6 @@
 import Foundation
 
-enum TabKind: String, CaseIterable, Identifiable {
+enum TabKind: String, Codable, CaseIterable, Identifiable {
     case discover
     case favorites
     case search

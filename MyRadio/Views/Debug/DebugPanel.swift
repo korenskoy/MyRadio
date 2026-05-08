@@ -1,4 +1,6 @@
+import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 import RadioBrowserKit
 
 struct DebugPanel: View {
@@ -74,30 +76,42 @@ struct DebugPanel: View {
 
     private var debugActions: some View {
         HStack(spacing: 2) {
-            debugActionButton("line.3.horizontal.decrease")
-            debugActionButton("doc.on.doc")
-            debugActionButton("arrow.down.doc")
+            debugActionButton("line.3.horizontal.decrease",
+                              active: state.debugLog.logsNewestFirst) {
+                state.debugLog.logsNewestFirst.toggle()
+            }
+            debugActionButton("doc.on.doc") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(state.debugLog.asText(), forType: .string)
+            }
+            debugActionButton("arrow.down.doc") {
+                saveLogsToFile()
+            }
             debugActionButton("trash") {
                 state.debugLog.clear()
             }
         }
     }
 
-    private func debugActionButton(_ systemName: String, action: @escaping () -> Void = {}) -> some View {
+    private func saveLogsToFile() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "myradio-debug.log"
+        panel.allowedContentTypes = [.plainText]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        try? state.debugLog.asText().write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    private func debugActionButton(_ systemName: String, active: Bool = false, action: @escaping () -> Void = {}) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(colors.fgDebug2)
+                .foregroundStyle(active ? colors.accent.accent : colors.fgDebug2)
                 .frame(width: 24, height: 24)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { hovering in
-            if hovering {
-                NSCursor.pointingHand.push()
-            } else {
-                NSCursor.pop()
-            }
+            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
         }
     }
 
@@ -254,7 +268,7 @@ private struct LogsTabView: View {
     }
 
     private var filteredLogs: [LogEntry] {
-        state.debugLog.entries.filter { entry in
+        let base = state.debugLog.entries.filter { entry in
             if let filter = levelFilter, entry.level != filter { return false }
             if !searchText.isEmpty {
                 let q = searchText.lowercased()
@@ -263,6 +277,7 @@ private struct LogsTabView: View {
             }
             return true
         }
+        return state.debugLog.logsNewestFirst ? base.reversed() : base
     }
 
     private var logList: some View {

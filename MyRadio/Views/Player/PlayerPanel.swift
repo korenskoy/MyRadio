@@ -17,7 +17,6 @@ struct PlayerPanel: View {
                 CoverArtView()
                 StationMetaView()
                 NowPlayingView()
-                VisualizerView()
                 Spacer(minLength: 0)
                 TransportView()
             }
@@ -285,12 +284,6 @@ private struct NowPlayingView: View {
                     .truncationMode(.tail)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Action buttons
-            HStack(spacing: 4) {
-                NowPlayingActionButton(icon: "link", color: colors.fg3)
-                NowPlayingActionButton(icon: "heart", color: colors.fg3)
-            }
         }
         .padding(14)
         .background(colors.bgElevated)
@@ -300,58 +293,6 @@ private struct NowPlayingView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: AppLayout.rMd))
         .padding(.top, 18)
-    }
-}
-
-private struct NowPlayingActionButton: View {
-    let icon: String
-    let color: Color
-    @Environment(\.appColors) private var colors
-
-    var body: some View {
-        Button {} label: {
-            Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundStyle(color)
-                .frame(width: 28, height: 28)
-                .background(Color.clear)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Visualizer (36 animated bars)
-
-private struct VisualizerView: View {
-    @Environment(AppState.self) private var state
-    @Environment(\.appColors) private var colors
-
-    private let barCount = 36
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 2) {
-            ForEach(0..<barCount, id: \.self) { i in
-                let level = i < state.streamPlayer.audioLevels.count
-                    ? CGFloat(state.streamPlayer.audioLevels[i])
-                    : 0
-
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(
-                        LinearGradient(
-                            colors: [colors.accent.strong, colors.accent.accent],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(height: max(2, level * 38))
-                    .opacity(state.isPlaying ? 0.85 : 0.3)
-                    .animation(.easeOut(duration: 0.08), value: level)
-            }
-        }
-        .frame(height: 38, alignment: .bottom)
-        .padding(.horizontal, 2)
-        .padding(.top, 14)
     }
 }
 

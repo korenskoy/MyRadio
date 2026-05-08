@@ -36,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func configureMainWindow(_ window: NSWindow) {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.styleMask.insert(.fullSizeContentView)
         window.minSize = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
         window.maxSize = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)

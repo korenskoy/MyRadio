@@ -15,12 +15,17 @@ final class AppState {
     var isPlaying: Bool { streamPlayer.isPlaying }
     var volume: Double {
         get { Double(streamPlayer.volume) }
-        set { streamPlayer.volume = Float(newValue) }
+        set {
+            streamPlayer.volume = Float(newValue)
+            Task { await persistence.savePreferences(Preferences(volume: Float(newValue), activeTab: activeTab)) }
+        }
     }
     var nowPlayingTitle: String? { streamPlayer.nowPlayingTitle }
 
     // MARK: - Navigation
-    var activeTab: TabKind = .discover
+    var activeTab: TabKind = .discover {
+        didSet { Task { await persistence.savePreferences(Preferences(volume: Float(volume), activeTab: activeTab)) } }
+    }
     var searchQuery: String = ""
     var showAddStation = false
 
@@ -100,6 +105,10 @@ final class AppState {
             guard let self else { return }
             let api = RadioBrowserAPI(log: self.debugLog)
             self.cache = StationCache(api: api, log: self.debugLog)
+            if let prefs = await self.persistence.loadPreferences() {
+                self.streamPlayer.volume = prefs.volume
+                self.activeTab = prefs.activeTab
+            }
             self.favorites = await self.persistence.loadFavorites()
             self.favoriteStationData = await self.persistence.loadFavoriteStations()
             self.history = await self.persistence.loadHistory()

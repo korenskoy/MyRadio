@@ -7,6 +7,7 @@ final class DebugLog: @unchecked Sendable {
     private let capacity: Int
 
     private(set) var entries: [LogEntry] = []
+    var logsNewestFirst: Bool = false
 
     init(capacity: Int = 500) {
         self.capacity = capacity
@@ -29,6 +30,12 @@ final class DebugLog: @unchecked Sendable {
 
     func clear() {
         lock.withLock { entries.removeAll() }
+    }
+
+    func asText() -> String {
+        entries
+            .map { "[\($0.time)] [\($0.level.rawValue.uppercased())] \($0.message)  \($0.source)" }
+            .joined(separator: "\n")
     }
 
     private static let formatter: DateFormatter = {
