@@ -145,6 +145,7 @@ enum CountryFlag {
     /// Clean display name from the locale (e.g. "Russia" instead of "The Russian Federation").
     static func displayName(for name: String) -> String {
         guard let code = isoCode(for: name) else { return name }
+        if let override = displayOverrides[code] { return override }
         return Locale(identifier: "en_US").localizedString(forRegionCode: code) ?? name
     }
 
@@ -177,8 +178,16 @@ enum CountryFlag {
         return map
     }()
 
+    // Display name overrides for cases where the locale returns unwanted strings
+    // (e.g. macOS 13+ returns "China mainland" for CN instead of "China").
+    private static let displayOverrides: [String: String] = [
+        "CN": "China",
+    ]
+
     // Known API names that don't match locale strings even after stripping "The".
     private static let aliases: [String: String] = [
+        // China (macOS 13+ locale returns "China mainland", API sends "China")
+        "china":                                            "CN",
         // Russia
         "russian federation":                               "RU",
         // USA
