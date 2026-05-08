@@ -27,9 +27,8 @@ struct TitlebarView: View {
 
                 Spacer()
 
-                // Center: icon + title
+                // Center: title
                 HStack(spacing: 6) {
-                    TitleIconView()
                     Text("MyRadio")
                         .font(Typography.titlebar)
                         .foregroundStyle(colors.fg2)
@@ -58,24 +57,6 @@ struct TitlebarView: View {
             Rectangle()
                 .fill(colors.border)
                 .frame(height: 0.5)
-        }
-    }
-}
-
-// MARK: - Title icon (green square with inner circle)
-
-private struct TitleIconView: View {
-    @Environment(\.appColors) private var colors
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 5)
-                .fill(colors.accent.accent)
-                .frame(width: 18, height: 18)
-            Circle()
-                .strokeBorder(colors.accent.accent, lineWidth: 2)
-                .background(Circle().fill(colors.bgWindow))
-                .frame(width: 8, height: 8)
         }
     }
 }

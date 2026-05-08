@@ -93,7 +93,7 @@ struct StationRow: View {
                         .clipShape(Capsule())
                 }
             }
-            .frame(maxWidth: 220, alignment: .leading)
+            .frame(width: 220, alignment: .trailing)
 
             // Votes
             HStack(spacing: 4) {
@@ -106,17 +106,13 @@ struct StationRow: View {
                     .monospacedDigit()
             }
 
-            // Actions (visible on hover)
-            HStack(spacing: 2) {
-                RowActionButton(icon: "play.fill", size: 13)
-                RowActionButton(
-                    icon: state.isFavorite(station) ? "star.fill" : "star",
-                    size: 13,
-                    color: state.isFavorite(station) ? colors.statusWarn : nil
-                ) {
-                    state.toggleFavorite(station)
-                }
-                RowActionButton(icon: "ellipsis", size: 13)
+            // Favorite toggle (visible on hover or when active)
+            RowActionButton(
+                icon: state.isFavorite(station) ? "star.fill" : "star",
+                size: 13,
+                color: state.isFavorite(station) ? colors.statusWarn : nil
+            ) {
+                state.toggleFavorite(station)
             }
             .opacity(isHovered || state.isFavorite(station) ? 1 : 0)
         }
