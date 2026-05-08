@@ -94,6 +94,16 @@ actor StationCache {
 
     // MARK: - Invalidation
 
+    func invalidateTopVoted(count: Int = 200) {
+        let file = cacheDir.appendingPathComponent("topVoted-\(count).json")
+        try? FileManager.default.removeItem(at: file)
+    }
+
+    func invalidatePopular(count: Int = 200) {
+        let file = cacheDir.appendingPathComponent("topClicked-\(count).json")
+        try? FileManager.default.removeItem(at: file)
+    }
+
     func invalidateGeo() {
         let file = cacheDir.appendingPathComponent("geo-all.json")
         try? FileManager.default.removeItem(at: file)

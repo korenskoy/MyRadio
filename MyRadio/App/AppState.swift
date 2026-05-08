@@ -190,10 +190,14 @@ final class AppState {
             }
 
         case .topVoted:
-            topVotedStations = await cache.topVoted(200)
+            if topVotedStations.isEmpty {
+                topVotedStations = await cache.topVoted(200)
+            }
 
         case .popular:
-            popularStations = await cache.topClicked(200)
+            if popularStations.isEmpty {
+                popularStations = await cache.topClicked(200)
+            }
 
         case .search:
             guard !searchQuery.isEmpty else {
@@ -221,6 +225,18 @@ final class AppState {
         cache?.invalidateGeo()
         mapStations = []
         await loadTabData(for: .map)
+    }
+
+    func reloadTopVoted() async {
+        cache?.invalidateTopVoted()
+        topVotedStations = []
+        await loadTabData(for: .topVoted)
+    }
+
+    func reloadPopular() async {
+        cache?.invalidatePopular()
+        popularStations = []
+        await loadTabData(for: .popular)
     }
 
     func reloadCountries() async {

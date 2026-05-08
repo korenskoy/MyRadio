@@ -24,13 +24,21 @@ struct RankedTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ToolbarRow(subtitle: "\(data.count) stations by \(label)") {
+            ToolbarRow {
                 Text("via radio-browser.info · live")
                     .font(Typography.meta)
                     .foregroundStyle(colors.fg3)
                 Spacer()
+                Text("\(data.count) stations · by \(label)")
+                    .font(Typography.meta)
+                    .foregroundStyle(colors.fg3)
                 BrowseButton(label: "", icon: "arrow.clockwise", style: .ghost) {
-                    Task { await state.loadTabData(for: sortBy == .votes ? .topVoted : .popular) }
+                    Task {
+                        switch sortBy {
+                        case .votes:  await state.reloadTopVoted()
+                        case .clicks: await state.reloadPopular()
+                        }
+                    }
                 }
             }
 
