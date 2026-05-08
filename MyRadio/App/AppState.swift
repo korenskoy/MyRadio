@@ -31,7 +31,7 @@ final class AppState {
 
     // MARK: - Collections
     var stations: [Station] = []
-    var favorites: Set<String> = []
+    var favorites: [String] = []
     private var favoriteStationData: [String: Station] = [:]
     var history: [HistoryEntry] = []
     var customStations: [CustomStation] = []
@@ -82,7 +82,7 @@ final class AppState {
     }
 
     var favoriteStations: [Station] {
-        favorites.compactMap { uuid in
+        favorites.reversed().compactMap { uuid in
             if let station = favoriteStationData[uuid] { return station }
             let allStations = stations + discoverTopVoted + discoverPopular
                 + topVotedStations + popularStations
@@ -153,10 +153,10 @@ final class AppState {
 
     func toggleFavorite(_ station: Station) {
         if favorites.contains(station.stationuuid) {
-            favorites.remove(station.stationuuid)
+            favorites.removeAll { $0 == station.stationuuid }
             favoriteStationData.removeValue(forKey: station.stationuuid)
         } else {
-            favorites.insert(station.stationuuid)
+            favorites.append(station.stationuuid)
             favoriteStationData[station.stationuuid] = station
         }
         Task {

@@ -17,11 +17,11 @@ actor Persistence {
 
     // MARK: - Favorites
 
-    func loadFavorites() -> Set<String> {
+    func loadFavorites() -> [String] {
         load("favorites.json") ?? []
     }
 
-    func saveFavorites(_ favorites: Set<String>) {
+    func saveFavorites(_ favorites: [String]) {
         save(favorites, to: "favorites.json")
     }
 
