@@ -41,6 +41,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        guard sender === mainWindow else { return frameSize }
+        return NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
+    }
+
     // Re-apply on key focus in case macOS reset positions.
     func windowDidBecomeKey(_ notification: Notification) {
         guard let window = notification.object as? NSWindow,
