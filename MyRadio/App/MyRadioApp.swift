@@ -15,6 +15,13 @@ struct MyRadioApp: App {
         .windowResizability(.contentSize)
         .defaultSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
         .commands {}
+
+        WindowGroup(id: "devtools") {
+            DevToolsWindowRoot()
+                .environment(state)
+        }
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 900, height: 480)
     }
 }
 
@@ -31,9 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
         window.styleMask.insert(.fullSizeContentView)
-        let expandedHeight = AppLayout.windowHeight + AppLayout.debugHeight
         window.minSize = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
-        window.maxSize = NSSize(width: AppLayout.windowWidth, height: expandedHeight)
+        window.maxSize = NSSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
         window.standardWindowButton(.zoomButton)?.isEnabled = false
     }
 }

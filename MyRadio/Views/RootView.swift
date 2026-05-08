@@ -9,35 +9,24 @@ struct RootView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            VStack(spacing: 0) {
-                // Titlebar
-                TitlebarView()
+        VStack(spacing: 0) {
+            // Titlebar
+            TitlebarView()
 
-                // Main split
-                HStack(spacing: 0) {
-                    PlayerPanel()
-                        .frame(width: AppLayout.playerWidth)
+            // Main split
+            HStack(spacing: 0) {
+                PlayerPanel()
+                    .frame(width: AppLayout.playerWidth)
 
-                    Divider()
-                        .overlay(colors.border)
+                Divider()
+                    .overlay(colors.border)
 
-                    BrowsePanel()
-                        .frame(maxWidth: .infinity)
-                }
-                .frame(height: AppLayout.contentHeight)
-
-                // Debug panel
-                if state.logsVisible {
-                    DebugPanel()
-                        .frame(height: AppLayout.debugHeight)
-                }
+                BrowsePanel()
+                    .frame(maxWidth: .infinity)
             }
+            .frame(height: AppLayout.contentHeight)
         }
-        .frame(width: AppLayout.windowWidth,
-               height: state.logsVisible
-                   ? AppLayout.windowHeight + AppLayout.debugHeight
-                   : AppLayout.windowHeight)
+        .frame(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
         .background(colors.bgWindow)
         .environment(\.appColors, colors)
         .sheet(isPresented: Bindable(state).showAddStation) {

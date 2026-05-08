@@ -105,10 +105,15 @@ private struct ThemeCycleButton: View {
 private struct DebugToggleButton: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Button {
-            state.logsVisible.toggle()
+            if state.logsVisible, let w = state.devToolsNSWindow {
+                w.close()
+            } else {
+                openWindow(id: "devtools")
+            }
         } label: {
             Image(systemName: "ladybug")
                 .font(.system(size: 13, weight: .regular))

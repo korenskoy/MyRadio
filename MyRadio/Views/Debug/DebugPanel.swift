@@ -80,9 +80,6 @@ struct DebugPanel: View {
             debugActionButton("trash") {
                 state.debugLog.clear()
             }
-            debugActionButton("chevron.down") {
-                state.logsVisible = false
-            }
         }
     }
 

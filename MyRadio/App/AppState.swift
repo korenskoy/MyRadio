@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import RadioBrowserKit
 
 @Observable
@@ -50,8 +51,9 @@ final class AppState {
     var selectedCountryCode: String?
 
     // MARK: - Debug panel
-    var logsVisible: Bool = true
+    var logsVisible: Bool = false
     var activeDebugTab: DebugTab = .logs
+    weak var devToolsNSWindow: NSWindow?
 
     // MARK: - Mini mode
     var isMiniMode: Bool = false
