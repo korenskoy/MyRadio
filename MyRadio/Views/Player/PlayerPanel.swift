@@ -430,13 +430,10 @@ private struct UtilityBar: View {
                 UtilButton(icon: "bed.double",          label: "Sleep", isActive: false, unavailable: true)
                 UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: "Mini", isActive: false, action: enterMiniMode)
 
-                let homepage = state.currentStation?.homepage.flatMap { $0.isEmpty ? nil : $0 }
-                UtilButton(icon: "square.and.arrow.up", label: nil, isActive: false,
-                           dimmed: homepage == nil) {
-                    if let url = homepage {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(url, forType: .string)
-                    }
+                let homepage = state.currentStation?.homepage.flatMap { $0.isEmpty ? nil : URL(string: $0) }
+                UtilButton(icon: "safari", label: nil, isActive: false,
+                           dimmed: homepage == nil, title: "Open station website") {
+                    if let url = homepage { NSWorkspace.shared.open(url) }
                 }
             }
         }
@@ -464,6 +461,7 @@ private struct UtilButton: View {
     let isActive: Bool
     var unavailable: Bool = false
     var dimmed: Bool = false
+    var title: String? = nil
     var action: (() -> Void)?
     @Environment(\.appColors) private var colors
     @State private var hovered = false
@@ -496,6 +494,7 @@ private struct UtilButton: View {
             )
         }
         .buttonStyle(.plain)
+        .help(title ?? "")
         .onHover { isHovered in
             hovered = isHovered
             if unavailable {
