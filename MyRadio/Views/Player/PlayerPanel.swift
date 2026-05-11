@@ -286,8 +286,8 @@ private struct NowPlayingView: View {
                         .transition(.opacity.animation(.easeInOut(duration: 0.3)))
                 }
             }
-            .frame(width: 44, height: 44)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .frame(width: 54, height: 54)
+            .clipShape(RoundedRectangle(cornerRadius: 7))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("NOW ON AIR")
@@ -295,26 +295,20 @@ private struct NowPlayingView: View {
                     .foregroundStyle(colors.accent.strong)
                     .tracking(0.8)
 
-                if let p = parsed {
-                    Text(p.title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(colors.fg)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Text(p.artist)
-                        .font(Typography.meta)
-                        .foregroundStyle(colors.fg3)
-                        .lineLimit(1)
-                } else {
-                    Text(state.nowPlayingTitle ?? "—")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(colors.fg)
-                        .lineLimit(1)
-                }
+                Text(parsed?.title ?? state.nowPlayingTitle ?? "—")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(colors.fg)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Text(parsed?.artist ?? "")
+                    .font(Typography.meta)
+                    .foregroundStyle(colors.fg3)
+                    .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(14)
+        .padding(11)
         .background(colors.bgElevated)
         .overlay(
             RoundedRectangle(cornerRadius: AppLayout.rMd)
