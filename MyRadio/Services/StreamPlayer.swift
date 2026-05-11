@@ -90,21 +90,27 @@ final class StreamPlayer: NSObject {
     }
 
     private func teardownPlayer() {
-        if let obs = timeObserver { player?.removeTimeObserver(obs) }
-        timeObserver = nil
+        // Cancel observations before touching the player — avoids callbacks on dead objects.
         statusObservation?.invalidate()
         rateObservation?.invalidate()
         statusObservation = nil
         rateObservation = nil
 
-        if let output = metadataOutput, let item = playerItem {
-            item.remove(output)
-        }
+        if let obs = timeObserver { player?.removeTimeObserver(obs) }
+        timeObserver = nil
+
+        // Detach metadata delegate so it can't fire after teardown.
+        metadataOutput?.setDelegate(nil, queue: nil)
+        if let output = metadataOutput, let item = playerItem { item.remove(output) }
         metadataOutput = nil
 
+        // Explicit replaceCurrentItem before nil — lets AVFoundation close
+        // internal NW connections cleanly instead of leaving them dangling.
         player?.pause()
+        player?.replaceCurrentItem(with: nil)
         player = nil
         playerItem = nil
+
         isPlaying = false
         nowPlayingTitle = nil
         icyMetadata = [:]
@@ -160,8 +166,16 @@ final class StreamPlayer: NSObject {
             guard let self else { return }
             switch item.status {
             case .failed:
-                self.log?.append(.error, "Stream failed: \(item.error?.localizedDescription ?? "unknown")", source: "audio.player")
-                self.handleStreamFailure()
+                let err = item.error as NSError?
+                let desc = err?.localizedDescription ?? "unknown"
+                // ICY/HTTP errors during metadata updates are transient — don't reconnect.
+                let isTransient = err.map { isMpegTransientError($0) } ?? false
+                if isTransient {
+                    self.log?.append(.debug, "Transient stream event: \(desc)", source: "audio.player")
+                } else {
+                    self.log?.append(.error, "Stream failed: \(desc)", source: "audio.player")
+                    self.handleStreamFailure()
+                }
             case .readyToPlay:
                 self.log?.append(.debug, "Stream ready to play", source: "audio.player")
                 self.updateAccessLog()
@@ -235,4 +249,14 @@ extension StreamPlayer: AVPlayerItemMetadataOutputPushDelegate {
             }
         }
     }
+}
+
+// ICY metadata updates and HTTP range resets produce transient AVFoundation
+// errors that look fatal but aren't — the stream recovers on its own.
+// Codes: -12640 ICY pump, -12860/-12783 FigStreamPlayer, -12539 HTTP,
+//        -12753 timebase reset, -15514 HLS segment.
+private func isMpegTransientError(_ error: NSError) -> Bool {
+    guard error.domain == "CoreMediaErrorDomain" else { return false }
+    let transient: Set<Int> = [-12640, -12860, -12783, -12539, -12540, -12753, -15514]
+    return transient.contains(error.code)
 }
