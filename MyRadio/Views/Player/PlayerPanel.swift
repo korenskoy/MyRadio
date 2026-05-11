@@ -259,7 +259,10 @@ private struct NowPlayingView: View {
     @Environment(\.appColors) private var colors
 
     @State private var trackArtwork: NSImage?
+    @State private var tracks: [iTunesTrack] = []
     @State private var lastTitle: String?
+    @State private var showSheet = false
+    @State private var hovered = false
 
     private var parsed: (artist: String, title: String)? {
         guard let raw = state.nowPlayingTitle, !raw.isEmpty else { return nil }
@@ -269,16 +272,16 @@ private struct NowPlayingView: View {
                 parts.dropFirst().joined(separator: " - ").trimmingCharacters(in: .whitespaces))
     }
 
+    private var isClickable: Bool { !tracks.isEmpty }
+
     var body: some View {
         HStack(spacing: 12) {
-            // Track artwork (from iTunes) or fallback gradient
             ZStack {
                 RoundedRectangle(cornerRadius: 6)
                     .fill(LinearGradient(
                         colors: [Color(hex: 0xC45030), Color(hex: 0x6B1880)],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     ))
-
                 if let img = trackArtwork {
                     Image(nsImage: img)
                         .resizable()
@@ -294,19 +297,24 @@ private struct NowPlayingView: View {
                     .font(Typography.label)
                     .foregroundStyle(colors.accent.strong)
                     .tracking(0.8)
-
                 Text(parsed?.title ?? state.nowPlayingTitle ?? "—")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(colors.fg)
                     .lineLimit(1)
                     .truncationMode(.tail)
-
                 Text(parsed?.artist ?? "")
                     .font(Typography.meta)
                     .foregroundStyle(colors.fg3)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isClickable {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 13))
+                    .foregroundStyle(colors.fg3)
+                    .opacity(hovered ? 1 : 0)
+            }
         }
         .padding(11)
         .background(colors.bgElevated)
@@ -316,12 +324,34 @@ private struct NowPlayingView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: AppLayout.rMd))
         .padding(.top, 18)
+        .contentShape(Rectangle())
+        .onHover { h in
+            hovered = h
+            if isClickable {
+                if h { NSCursor.pointingHand.push() }
+                else { NSCursor.pop() }
+            }
+        }
+        .onTapGesture { if isClickable { showSheet = true } }
+        .sheet(isPresented: $showSheet) {
+            TrackInfoSheet(
+                stationName: state.currentStation?.name ?? "",
+                tracks: tracks,
+                onDismiss: { showSheet = false }
+            )
+            .environment(\.appColors, colors)
+        }
         .onChange(of: state.nowPlayingTitle) { _, newTitle in
             guard newTitle != lastTitle else { return }
             lastTitle = newTitle
             trackArtwork = nil
+            tracks = []
             guard let p = parsed else { return }
             Task {
+                let fetched = await iTunesArtworkService.shared.tracks(
+                    artist: p.artist, title: p.title
+                )
+                tracks = fetched
                 trackArtwork = await iTunesArtworkService.shared.artwork(
                     artist: p.artist, title: p.title
                 )
