@@ -487,7 +487,12 @@ private struct UtilityBar: View {
                 .padding(.bottom, 12)
 
             HStack(spacing: 8) {
-                UtilButton(icon: "bed.double", label: "Sleep", isActive: false, dimmed: true)
+                UtilButton(
+                    icon: "bed.double",
+                    label: state.sleepTimer.isActive ? sleepCountdown : "Sleep",
+                    isActive: state.sleepTimer.isActive,
+                    action: { state.showSleepTimer = true }
+                )
                 UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: "Mini", isActive: false, action: enterMiniMode)
 
                 let homepage = state.currentStation?.homepage.flatMap { $0.isEmpty ? nil : URL(string: $0) }
@@ -498,6 +503,19 @@ private struct UtilityBar: View {
             }
         }
         .padding(.top, 12)
+    }
+
+    private var sleepCountdown: String {
+        let total = Int(max(0, state.sleepTimer.remainingSeconds))
+        let m = total / 60
+        let s = total % 60
+        if m >= 60 {
+            let h = m / 60
+            let rem = m % 60
+            return rem == 0 ? "\(h)h" : "\(h)h \(rem)m"
+        }
+        if m > 0 { return "\(m)m" }
+        return "\(s)s"
     }
 
     private func enterMiniMode() {
@@ -537,6 +555,9 @@ private struct UtilButton: View {
                 if let label {
                     Text(label)
                         .font(Typography.utility)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .animation(.linear(duration: 0.25), value: label)
                 }
             }
             .foregroundStyle(isActive ? colors.accent.strong : colors.fg2)

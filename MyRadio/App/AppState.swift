@@ -7,6 +7,7 @@ final class AppState {
     // MARK: - Services
     let debugLog = DebugLog()
     let streamPlayer = StreamPlayer()
+    let sleepTimer = SleepTimerService()
     private let persistence = Persistence()
     private var cache: StationCache?
     private var nowPlayingController: NowPlayingController?
@@ -30,6 +31,7 @@ final class AppState {
     }
     var searchQuery: String = ""
     var showAddStation = false
+    var showSleepTimer = false
 
     // MARK: - Collections
     var stations: [Station] = []
@@ -98,6 +100,7 @@ final class AppState {
 
     init() {
         streamPlayer.configure(log: debugLog)
+        sleepTimer.onFire = { [weak self] in self?.stopPlayback() }
         nowPlayingController = NowPlayingController(state: self)
         debugLog.append(.info, "Application started · MyRadio v1.0.0", source: "app.boot")
 
@@ -149,6 +152,7 @@ final class AppState {
         streamPlayer.stop()
         currentStation = nil
         playStartTime = nil
+        sleepTimer.cancel()
     }
 
     func toggleFavorite(_ station: Station) {

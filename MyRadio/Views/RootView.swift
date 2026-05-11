@@ -34,5 +34,10 @@ struct RootView: View {
                 .environment(state)
                 .environment(\.appColors, colors)
         }
+        .sheet(isPresented: Bindable(state).showSleepTimer) {
+            SleepTimerSheet()
+                .environment(state)
+                .environment(\.appColors, colors)
+        }
     }
 }
