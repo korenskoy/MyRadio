@@ -66,7 +66,8 @@ final class AppState {
 
     // MARK: - Appearance
     var theme: AppTheme = .auto
-    var accent: AccentName = .green
+    var accent: AccentName = .system
+    private(set) var systemColorEpoch: Int = 0
 
     // MARK: - History tracking
     private var playStartTime: Date?
@@ -102,6 +103,13 @@ final class AppState {
         streamPlayer.configure(log: debugLog)
         sleepTimer.onFire = { [weak self] in self?.stopPlayback() }
         nowPlayingController = NowPlayingController(state: self)
+
+        NotificationCenter.default.addObserver(
+            forName: NSColor.systemColorsDidChangeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.systemColorEpoch += 1
+        }
         debugLog.append(.info, "Application started · MyRadio v1.0.0", source: "app.boot")
 
         Task { @MainActor [weak self] in

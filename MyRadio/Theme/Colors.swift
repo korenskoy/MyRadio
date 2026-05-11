@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // MARK: - Color hex init
 
@@ -18,9 +19,11 @@ enum AppTheme: String, CaseIterable {
 }
 
 enum AccentName: String, CaseIterable {
-    case green, orange, blue, purple
+    case system, green, orange, blue, purple
 
-    var displayName: String { rawValue.capitalized }
+    var displayName: String {
+        self == .system ? "System" : rawValue.capitalized
+    }
 }
 
 struct AccentPreset {
@@ -32,9 +35,10 @@ struct AccentPreset {
 }
 
 extension AccentName {
-    // OKLCH → sRGB conversions, computed once
     var preset: AccentPreset {
         switch self {
+        case .system:
+            return Self.systemPreset()
         case .green:
             return AccentPreset(
                 accent:   Color(hex: 0x5CC97A),
@@ -68,6 +72,25 @@ extension AccentName {
                 fg:       Color(hex: 0x180C1D)
             )
         }
+    }
+
+    static func systemPreset() -> AccentPreset {
+        guard let ns = NSColor.controlAccentColor.usingColorSpace(.sRGB) else {
+            return AccentName.blue.preset
+        }
+        let r = ns.redComponent
+        let g = ns.greenComponent
+        let b = ns.blueComponent
+
+        let accent   = Color(.sRGB, red: r, green: g, blue: b)
+        let strong   = Color(.sRGB, red: max(0, r-0.18), green: max(0, g-0.18), blue: max(0, b-0.18))
+        let soft     = Color(.sRGB, red: min(1, r*0.12+0.88), green: min(1, g*0.12+0.88), blue: min(1, b*0.12+0.88))
+        let softDark = Color(.sRGB, red: r*0.25, green: g*0.25, blue: b*0.25)
+        let lum      = 0.299*r + 0.587*g + 0.114*b
+        let fgV: Double = lum > 0.45 ? 0.08 : 0.95
+        let fg = Color(.sRGB, red: fgV, green: fgV, blue: fgV)
+
+        return AccentPreset(accent: accent, strong: strong, soft: soft, softDark: softDark, fg: fg)
     }
 }
 

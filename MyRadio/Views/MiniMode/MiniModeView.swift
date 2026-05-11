@@ -66,22 +66,35 @@ private struct MiniCoverView: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        if let station = state.currentStation {
-            StationArtwork(
-                station: station,
-                size: AppLayout.miniCoverSize,
-                cornerRadius: AppLayout.rSm,
-                glyphSize: 22
-            )
-        } else {
-            RoundedRectangle(cornerRadius: AppLayout.rSm)
-                .fill(LinearGradient(
-                    colors: [Color.gray, Color.black],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .frame(width: AppLayout.miniCoverSize, height: AppLayout.miniCoverSize)
+        ZStack {
+            if let station = state.currentStation {
+                StationArtwork(
+                    station: station,
+                    size: AppLayout.miniCoverSize,
+                    cornerRadius: AppLayout.rSm,
+                    glyphSize: 22
+                )
+            } else {
+                RoundedRectangle(cornerRadius: AppLayout.rSm)
+                    .fill(LinearGradient(
+                        colors: [Color.gray, Color.black],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: AppLayout.miniCoverSize, height: AppLayout.miniCoverSize)
+            }
+
+            if let trackArt = state.currentTrackArtwork {
+                Image(nsImage: trackArt)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: AppLayout.miniCoverSize, height: AppLayout.miniCoverSize)
+                    .clipShape(RoundedRectangle(cornerRadius: AppLayout.rSm))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.3)))
+            }
         }
+        .frame(width: AppLayout.miniCoverSize, height: AppLayout.miniCoverSize)
     }
 }
 

@@ -5,7 +5,8 @@ struct RootView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var colors: AppColors {
-        state.appColors(systemDark: colorScheme == .dark)
+        _ = state.systemColorEpoch  // invalidate when system accent changes
+        return state.appColors(systemDark: colorScheme == .dark)
     }
 
     var body: some View {
