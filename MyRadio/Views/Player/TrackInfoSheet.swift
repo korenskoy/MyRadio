@@ -37,7 +37,7 @@ struct TrackInfoSheet: View {
                 }
             }
         }
-        .frame(width: 760, height: 540)
+        .frame(width: 820, height: 540)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.3), radius: 40, y: 20)
         .task { await loadArtworks() }
