@@ -18,13 +18,23 @@ cd "$ROOT"
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo "▸ Building $SCHEME ($CONFIG)…"
-xcodebuild \
-  -project "$PROJECT" \
-  -scheme  "$SCHEME"  \
-  -configuration "$CONFIG" \
-  -derivedDataPath "$DERIVED" \
-  -destination "platform=macOS" \
-  build 2>&1 | xcpretty 2>/dev/null || cat /dev/stdin
+if command -v xcpretty &>/dev/null; then
+  xcodebuild \
+    -project "$PROJECT" \
+    -scheme  "$SCHEME"  \
+    -configuration "$CONFIG" \
+    -derivedDataPath "$DERIVED" \
+    -destination "platform=macOS" \
+    build 2>&1 | xcpretty
+else
+  xcodebuild \
+    -project "$PROJECT" \
+    -scheme  "$SCHEME"  \
+    -configuration "$CONFIG" \
+    -derivedDataPath "$DERIVED" \
+    -destination "platform=macOS" \
+    build
+fi
 
 APP_PATH="$ROOT/$DERIVED/Build/Products/$CONFIG/$APP_NAME.app"
 

@@ -22,6 +22,7 @@ final class AppState {
         }
     }
     var nowPlayingTitle: String? { streamPlayer.nowPlayingTitle }
+    var currentTrackArtwork: NSImage?
 
     // MARK: - Navigation
     var activeTab: TabKind = .discover {

@@ -74,18 +74,25 @@ final class NowPlayingController {
             info[MPMediaItemPropertyArtist] = "Live"
         }
 
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
         MPNowPlayingInfoCenter.default().playbackState = state.isPlaying ? .playing : .paused
 
-        // Artwork — load async and patch in when ready
-        let uuid    = station.stationuuid
-        let favicon = station.favicon
-        Task { @MainActor in
-            guard let nsImage = await ArtworkCache.shared.image(for: uuid, faviconURL: favicon) else { return }
-            let artwork = MPMediaItemArtwork(boundsSize: nsImage.size) { _ in nsImage }
-            var patched = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? info
-            patched[MPMediaItemPropertyArtwork] = artwork
+        // Artwork: prefer iTunes track art (synced from NowPlayingView); fall back to station favicon.
+        // Access currentTrackArtwork synchronously so withObservationTracking re-fires on changes.
+        if let trackImg = state.currentTrackArtwork {
+            var patched = info
+            patched[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: trackImg.size) { _ in trackImg }
             MPNowPlayingInfoCenter.default().nowPlayingInfo = patched
+        } else {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+            let uuid    = station.stationuuid
+            let favicon = station.favicon
+            Task { @MainActor in
+                guard let nsImage = await ArtworkCache.shared.image(for: uuid, faviconURL: favicon) else { return }
+                let artwork = MPMediaItemArtwork(boundsSize: nsImage.size) { _ in nsImage }
+                var patched = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? info
+                patched[MPMediaItemPropertyArtwork] = artwork
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = patched
+            }
         }
     }
 }
