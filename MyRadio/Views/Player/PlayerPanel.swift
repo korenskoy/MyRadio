@@ -258,24 +258,36 @@ private struct NowPlayingView: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
 
+    @State private var trackArtwork: NSImage?
+    @State private var lastTitle: String?
+
+    private var parsed: (artist: String, title: String)? {
+        guard let raw = state.nowPlayingTitle, !raw.isEmpty else { return nil }
+        let parts = raw.components(separatedBy: " - ")
+        guard parts.count >= 2 else { return nil }
+        return (parts[0].trimmingCharacters(in: .whitespaces),
+                parts.dropFirst().joined(separator: " - ").trimmingCharacters(in: .whitespaces))
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            // Mini cover
-            RoundedRectangle(cornerRadius: 6)
-                .fill(
-                    LinearGradient(
+            // Track artwork (from iTunes) or fallback gradient
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(LinearGradient(
                         colors: [Color(hex: 0xC45030), Color(hex: 0x6B1880)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 44, height: 44)
-                .overlay(
-                    Text("MB\nart")
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                )
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ))
+
+                if let img = trackArtwork {
+                    Image(nsImage: img)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.3)))
+                }
+            }
+            .frame(width: 44, height: 44)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("NOW ON AIR")
@@ -283,11 +295,22 @@ private struct NowPlayingView: View {
                     .foregroundStyle(colors.accent.strong)
                     .tracking(0.8)
 
-                Text(state.nowPlayingTitle ?? "—")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(colors.fg)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                if let p = parsed {
+                    Text(p.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(colors.fg)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text(p.artist)
+                        .font(Typography.meta)
+                        .foregroundStyle(colors.fg3)
+                        .lineLimit(1)
+                } else {
+                    Text(state.nowPlayingTitle ?? "—")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(colors.fg)
+                        .lineLimit(1)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -299,6 +322,17 @@ private struct NowPlayingView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: AppLayout.rMd))
         .padding(.top, 18)
+        .onChange(of: state.nowPlayingTitle) { _, newTitle in
+            guard newTitle != lastTitle else { return }
+            lastTitle = newTitle
+            trackArtwork = nil
+            guard let p = parsed else { return }
+            Task {
+                trackArtwork = await iTunesArtworkService.shared.artwork(
+                    artist: p.artist, title: p.title
+                )
+            }
+        }
     }
 }
 
