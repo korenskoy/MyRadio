@@ -12,11 +12,13 @@ struct TrackInfoSheet: View {
     @State private var isPreviewPlaying = false
     @Environment(\.appColors) private var colors
 
-    private var track: iTunesTrack { tracks[selectedIndex] }
+    private var track: iTunesTrack? {
+        guard !tracks.isEmpty, selectedIndex < tracks.count else { return nil }
+        return tracks[selectedIndex]
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // Background
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(NSColor.windowBackgroundColor))
 
@@ -28,12 +30,14 @@ struct TrackInfoSheet: View {
 
                 Divider()
 
-                ScrollView {
-                    HStack(alignment: .top, spacing: 28) {
-                        artwork
-                        info
+                if let t = track {
+                    ScrollView {
+                        HStack(alignment: .top, spacing: 28) {
+                            artwork(for: t)
+                            info(for: t)
+                        }
+                        .padding(24)
                     }
-                    .padding(24)
                 }
             }
         }
@@ -42,6 +46,10 @@ struct TrackInfoSheet: View {
         .shadow(color: .black.opacity(0.3), radius: 40, y: 20)
         .task { await loadArtworks() }
         .onDisappear { stopPreview() }
+        .onChange(of: tracks.count) { _, _ in
+            selectedIndex = min(selectedIndex, max(0, tracks.count - 1))
+            stopPreview()
+        }
     }
 
     // MARK: - Header
@@ -78,11 +86,11 @@ struct TrackInfoSheet: View {
 
     // MARK: - Artwork
 
-    private var artwork: some View {
+    private func artwork(for t: iTunesTrack) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.gray.opacity(0.15))
-            if let img = artworks[track.id] {
+            if let img = artworks[t.id] {
                 Image(nsImage: img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -96,7 +104,7 @@ struct TrackInfoSheet: View {
 
     // MARK: - Info
 
-    private var info: some View {
+    private func info(for t: iTunesTrack) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("MATCHED ON ITUNES")
                 .font(.system(size: 10.5, weight: .bold))
@@ -104,39 +112,31 @@ struct TrackInfoSheet: View {
                 .tracking(0.6)
                 .padding(.bottom, 8)
 
-            Text(track.title)
+            Text(t.title)
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(colors.fg)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 4)
 
-            Text(track.artist)
+            Text(t.artist)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(colors.fg)
                 .padding(.bottom, 3)
 
             HStack(spacing: 4) {
-                Text("from")
-                    .foregroundStyle(colors.fg3)
-                Text(track.album)
-                    .foregroundStyle(colors.fg2)
-                if let y = track.year {
-                    Text("· \(y)")
-                        .foregroundStyle(colors.fg3)
-                }
+                Text("from").foregroundStyle(colors.fg3)
+                Text(t.album).foregroundStyle(colors.fg2)
+                if let y = t.year { Text("· \(y)").foregroundStyle(colors.fg3) }
             }
             .font(.system(size: 13))
             .padding(.bottom, 16)
 
-            // Metadata grid
             HStack(spacing: 20) {
-                metaCell(label: "GENRE",   value: track.genre ?? "—")
-                if let dur = track.duration {
-                    metaCell(label: "LENGTH", value: dur)
-                }
-                metaCell(label: "COUNTRY", value: track.country ?? "—")
-                if let p = track.price, let c = track.currency, p > 0 {
+                metaCell(label: "GENRE",   value: t.genre ?? "—")
+                if let dur = t.duration { metaCell(label: "LENGTH", value: dur) }
+                metaCell(label: "COUNTRY", value: t.country ?? "—")
+                if let p = t.price, let c = t.currency, p > 0 {
                     let sym = Locale(identifier: "en_US@currency=\(c)").currencySymbol ?? "$"
                     metaCell(label: "ITUNES", value: String(format: "\(sym)%.2f", p))
                 }
@@ -145,19 +145,15 @@ struct TrackInfoSheet: View {
 
             Divider().padding(.bottom, 16)
 
-            // Action buttons
             HStack(spacing: 10) {
-                previewButton
-                linkButton(label: "Apple Music",   icon: "apple.logo",  color: .pink,   url: track.trackViewURL)
-                linkButton(label: "Spotify",        icon: "music.note",  color: .green,  url: spotifyURL)
-                linkButton(label: "YouTube Music",  icon: "play.fill",   color: .red,    url: ytMusicURL)
+                previewButton(for: t)
+                linkButton(label: "Apple Music",  icon: "apple.logo", color: .pink,  url: t.trackViewURL)
+                linkButton(label: "Spotify",       icon: "music.note", color: .green, url: spotifyURL(for: t))
+                linkButton(label: "YouTube Music", icon: "play.fill",  color: .red,   url: ytMusicURL(for: t))
             }
             .padding(.bottom, 16)
 
-            // Matches list
-            if tracks.count > 1 {
-                matchesList
-            }
+            if tracks.count > 1 { matchesList }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -178,9 +174,10 @@ struct TrackInfoSheet: View {
 
     // MARK: - Preview button
 
-    private var previewButton: some View {
-        Button {
-            togglePreview()
+    private func previewButton(for t: iTunesTrack) -> some View {
+        let hasPreview = t.previewURL != nil
+        return Button {
+            togglePreview(for: t)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: isPreviewPlaying ? "stop.fill" : "play.fill")
@@ -188,14 +185,14 @@ struct TrackInfoSheet: View {
                 Text(isPreviewPlaying ? "Stop" : "Preview 30s")
                     .font(.system(size: 13, weight: .semibold))
             }
-            .foregroundStyle(track.previewURL != nil ? colors.accent.fg : colors.fg3)
+            .foregroundStyle(hasPreview ? colors.accent.fg : colors.fg3)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(track.previewURL != nil ? colors.accent.accent : colors.bgPill)
+            .background(hasPreview ? colors.accent.accent : colors.bgPill)
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
-        .disabled(track.previewURL == nil)
+        .disabled(!hasPreview)
     }
 
     private func linkButton(label: String, icon: String, color: Color, url: String?) -> some View {
@@ -290,16 +287,16 @@ struct TrackInfoSheet: View {
 
     // MARK: - Links
 
-    private var spotifyURL: String? {
-        let q = "\(track.artist) \(track.title)"
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return "https://open.spotify.com/search/\(q)"
+    private func spotifyURL(for t: iTunesTrack) -> String? {
+        "\(t.artist) \(t.title)"
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+            .map { "https://open.spotify.com/search/\($0)" }
     }
 
-    private var ytMusicURL: String? {
-        let q = "\(track.artist) \(track.title)"
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return "https://music.youtube.com/search?q=\(q)"
+    private func ytMusicURL(for t: iTunesTrack) -> String? {
+        "\(t.artist) \(t.title)"
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+            .map { "https://music.youtube.com/search?q=\($0)" }
     }
 
     // MARK: - Artwork loading
@@ -315,11 +312,11 @@ struct TrackInfoSheet: View {
 
     // MARK: - Preview playback
 
-    private func togglePreview() {
+    private func togglePreview(for t: iTunesTrack) {
         if isPreviewPlaying {
             stopPreview()
         } else {
-            guard let urlStr = track.previewURL, let url = URL(string: urlStr) else { return }
+            guard let urlStr = t.previewURL, let url = URL(string: urlStr) else { return }
             previewPlayer = AVPlayer(url: url)
             previewPlayer?.play()
             isPreviewPlaying = true
