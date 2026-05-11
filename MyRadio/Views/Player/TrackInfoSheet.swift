@@ -31,12 +31,18 @@ struct TrackInfoSheet: View {
                 Divider()
 
                 if let t = track {
-                    ScrollView {
-                        HStack(alignment: .top, spacing: 28) {
-                            artwork(for: t)
+                    HStack(alignment: .top, spacing: 28) {
+                        // Left: fixed artwork column
+                        artwork(for: t)
+                            .padding(.leading, 24)
+                            .padding(.vertical, 24)
+
+                        // Right: scrollable info column
+                        ScrollView {
                             info(for: t)
+                                .padding(.trailing, 24)
+                                .padding(.vertical, 24)
                         }
-                        .padding(24)
                     }
                 }
             }
