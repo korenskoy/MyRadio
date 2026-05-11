@@ -18,12 +18,8 @@ enum AppTheme: String, CaseIterable {
     case auto, light, dark
 }
 
-enum AccentName: String, CaseIterable {
-    case system, green, orange, blue, purple
-
-    var displayName: String {
-        self == .system ? "System" : rawValue.capitalized
-    }
+enum AccentName: String {
+    case system
 }
 
 struct AccentPreset {
@@ -35,48 +31,18 @@ struct AccentPreset {
 }
 
 extension AccentName {
-    var preset: AccentPreset {
-        switch self {
-        case .system:
-            return Self.systemPreset()
-        case .green:
-            return AccentPreset(
-                accent:   Color(hex: 0x5CC97A),
-                strong:   Color(hex: 0x3DAF62),
-                soft:     Color(hex: 0xEDF9F1),
-                softDark: Color(hex: 0x1A3D27),
-                fg:       Color(hex: 0x0C2014)
-            )
-        case .orange:
-            return AccentPreset(
-                accent:   Color(hex: 0xD4935A),
-                strong:   Color(hex: 0xB8722F),
-                soft:     Color(hex: 0xFAF0E8),
-                softDark: Color(hex: 0x3D2210),
-                fg:       Color(hex: 0x1D0C04)
-            )
-        case .blue:
-            return AccentPreset(
-                accent:   Color(hex: 0x5C9BCC),
-                strong:   Color(hex: 0x3A7AAF),
-                soft:     Color(hex: 0xE8F2FA),
-                softDark: Color(hex: 0x112233),
-                fg:       Color(hex: 0x04101D)
-            )
-        case .purple:
-            return AccentPreset(
-                accent:   Color(hex: 0xB374C8),
-                strong:   Color(hex: 0x9350AF),
-                soft:     Color(hex: 0xF5EAF9),
-                softDark: Color(hex: 0x2D1438),
-                fg:       Color(hex: 0x180C1D)
-            )
-        }
-    }
+    var preset: AccentPreset { Self.systemPreset() }
 
     static func systemPreset() -> AccentPreset {
         guard let ns = NSColor.controlAccentColor.usingColorSpace(.sRGB) else {
-            return AccentName.blue.preset
+            // Fallback: macOS blue
+            return AccentPreset(
+                accent:   Color(.sRGB, red: 0.36, green: 0.61, blue: 0.80),
+                strong:   Color(.sRGB, red: 0.23, green: 0.48, blue: 0.69),
+                soft:     Color(.sRGB, red: 0.91, green: 0.95, blue: 0.98),
+                softDark: Color(.sRGB, red: 0.07, green: 0.13, blue: 0.20),
+                fg:       Color(.sRGB, red: 0.02, green: 0.06, blue: 0.11)
+            )
         }
         let r = ns.redComponent
         let g = ns.greenComponent
@@ -197,7 +163,7 @@ struct AppColors {
 // MARK: - Environment key
 
 private struct AppColorsKey: EnvironmentKey {
-    static let defaultValue = AppColors.makeLight(accent: .green)
+    static let defaultValue = AppColors.makeLight(accent: .system)
 }
 
 extension EnvironmentValues {
