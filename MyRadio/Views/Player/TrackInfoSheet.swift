@@ -46,9 +46,12 @@ struct TrackInfoSheet: View {
         .shadow(color: .black.opacity(0.3), radius: 40, y: 20)
         .task { await loadArtworks() }
         .onDisappear { stopPreview() }
-        .onChange(of: tracks.count) { _, _ in
-            selectedIndex = min(selectedIndex, max(0, tracks.count - 1))
+        .onChange(of: tracks.first?.id) { _, _ in
+            // Track changed — reset everything and reload
+            selectedIndex = 0
+            artworks = [:]
             stopPreview()
+            Task { await loadArtworks() }
         }
     }
 
