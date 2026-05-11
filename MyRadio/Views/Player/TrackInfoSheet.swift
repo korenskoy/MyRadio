@@ -240,7 +240,7 @@ struct TrackInfoSheet: View {
                     }
                 }
             }
-            .frame(maxHeight: 130)
+            .frame(maxHeight: .infinity)
         }
     }
 
