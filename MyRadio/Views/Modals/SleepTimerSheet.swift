@@ -140,6 +140,7 @@ struct SleepTimerSheet: View {
                 .buttonStyle(SheetDestructiveButtonStyle(colors: colors))
             } else {
                 Button("Start timer") {
+                    NotificationService.requestAuthorizationIfNeeded()
                     sleepTimer.schedule(minutes: selectedMinutes)
                     dismiss()
                 }

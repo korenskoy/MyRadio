@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UserNotifications
 
 @main
 struct MyRadioApp: App {
@@ -31,6 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private weak var mainWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        UNUserNotificationCenter.current().delegate = self
+
         guard let window = NSApp.windows.first else { return }
         mainWindow = window
         configureMainWindow(window)
@@ -92,5 +95,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             guard abs(btn.frame.origin.y - newY) > 0.5 else { continue }
             btn.setFrameOrigin(NSPoint(x: btn.frame.origin.x, y: newY))
         }
+    }
+}
+
+// MARK: - Notification presentation while app is foregrounded
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 }

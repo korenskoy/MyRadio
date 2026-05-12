@@ -101,7 +101,10 @@ final class AppState {
 
     init() {
         streamPlayer.configure(log: debugLog)
-        sleepTimer.onFire = { [weak self] in self?.stopPlayback() }
+        sleepTimer.onFire = { [weak self] in
+            self?.stopPlayback()
+            NotificationService.fireSleepTimerExpired()
+        }
         nowPlayingController = NowPlayingController(state: self)
 
         NotificationCenter.default.addObserver(
