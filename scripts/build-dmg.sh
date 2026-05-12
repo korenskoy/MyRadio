@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-dmg.sh — builds MyRadio in Release and packages it as a DMG
+# build-dmg.sh — bumps build number, builds MyRadio in Release, packages as DMG
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -15,6 +15,16 @@ VOLUME_NAME="MyRadio"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
+
+# ── Auto-increment build number ───────────────────────────────────────────────
+XCCONFIG="$ROOT/Configuration/Version.xcconfig"
+BUILD=$(grep "^CURRENT_PROJECT_VERSION" "$XCCONFIG" | awk -F'= *' '{print $2}' | xargs)
+NEW_BUILD=$((BUILD + 1))
+sed -i '' "s/^CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $NEW_BUILD/" "$XCCONFIG"
+echo "▸ Build number: $BUILD → $NEW_BUILD"
+
+VERSION=$(grep "^MARKETING_VERSION" "$XCCONFIG" | awk -F'= *' '{print $2}' | xargs)
+echo "▸ Version: $VERSION ($NEW_BUILD)"
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo "▸ Building $SCHEME ($CONFIG)…"
@@ -42,13 +52,6 @@ if [[ ! -d "$APP_PATH" ]]; then
   echo "✗ App not found at $APP_PATH — build may have failed."
   exit 1
 fi
-
-# ── Version ───────────────────────────────────────────────────────────────────
-VERSION=$(defaults read "$APP_PATH/Contents/Info" CFBundleShortVersionString 2>/dev/null \
-          || echo "0")
-BUILD=$(defaults read "$APP_PATH/Contents/Info"   CFBundleVersion 2>/dev/null \
-          || echo "0")
-echo "▸ Version: $VERSION ($BUILD)"
 
 # ── Prepare staging folder ────────────────────────────────────────────────────
 STAGING=$(mktemp -d)

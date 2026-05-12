@@ -12,6 +12,7 @@
 
 /* Begin PBXFileReference section */
 		93F7D5DD2FAC70AB00A9122C /* MyRadio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyRadio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		93F7D5EB2FAC70AC00A9122C /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -37,6 +38,7 @@
 		93F7D5D42FAC70AB00A9122C = {
 			isa = PBXGroup;
 			children = (
+				93F7D5EC2FAC70AC00A9122C /* Configuration */,
 				93F7D5DF2FAC70AB00A9122C /* MyRadio */,
 				93F7D5DE2FAC70AB00A9122C /* Products */,
 			);
@@ -48,6 +50,15 @@
 				93F7D5DD2FAC70AB00A9122C /* MyRadio.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		93F7D5EC2FAC70AC00A9122C /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				93F7D5EB2FAC70AC00A9122C /* Version.xcconfig */,
+			);
+			name = Configuration;
+			path = Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -256,13 +267,13 @@
 		};
 		93F7D5E92FAC70AC00A9122C /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 93F7D5EB2FAC70AC00A9122C /* Version.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MyRadio/MyRadio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = UZEE5BVAH9;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -275,7 +286,6 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = ru.korenskoy.MyRadio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -290,13 +300,13 @@
 		};
 		93F7D5EA2FAC70AC00A9122C /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 93F7D5EB2FAC70AC00A9122C /* Version.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MyRadio/MyRadio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = UZEE5BVAH9;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -309,7 +319,6 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = ru.korenskoy.MyRadio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
