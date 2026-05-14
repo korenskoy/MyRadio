@@ -53,6 +53,13 @@ actor Persistence {
         save(prefs, to: "preferences.json")
     }
 
+    func resetPreferences() {
+        let url = directory.appendingPathComponent("preferences.json")
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    nonisolated var directoryURL: URL { directory }
+
     // MARK: - Custom stations
 
     func loadCustomStations() -> [CustomStation] {

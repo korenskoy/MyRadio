@@ -84,6 +84,16 @@ final class AppState {
         Task { await persistence.savePreferences(snapshot) }
     }
 
+    var applicationSupportURL: URL { persistence.directoryURL }
+
+    func resetAllPreferences() {
+        theme = .auto
+        accent = .system
+        streamPlayer.volume = 0.7
+        activeTab = .discover
+        Task { await persistence.resetPreferences() }
+    }
+
     // MARK: - History tracking
     private var playStartTime: Date?
 

@@ -78,4 +78,16 @@ actor ArtworkCache {
         try? FileManager.default.removeItem(at: diskDir)
         try? FileManager.default.createDirectory(at: diskDir, withIntermediateDirectories: true)
     }
+
+    func diskUsage() -> UInt64 {
+        let fm = FileManager.default
+        guard let urls = try? fm.contentsOfDirectory(
+            at: diskDir,
+            includingPropertiesForKeys: [.fileSizeKey]
+        ) else { return 0 }
+        return urls.reduce(0) { sum, url in
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            return sum + UInt64(size)
+        }
+    }
 }
