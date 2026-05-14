@@ -122,7 +122,7 @@ private struct PreferencesContent: View {
                 case .about:      AboutPane()
                 case .general:    PlaceholderPane(title: "General")
                 case .appearance: AppearancePane()
-                case .shortcuts:  PlaceholderPane(title: "Shortcuts")
+                case .shortcuts:  ShortcutsPane()
                 case .advanced:   AdvancedPane()
                 }
             }

@@ -3,6 +3,7 @@ import SwiftUI
 struct SearchBar: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: 10) {
@@ -18,6 +19,10 @@ struct SearchBar: View {
                     .font(Typography.searchInput)
                     .foregroundStyle(colors.fg)
                     .textFieldStyle(.plain)
+                    .focused($isFocused)
+                    .onChange(of: state.searchFocusRequest) { _, _ in
+                        isFocused = true
+                    }
             }
             .frame(height: 32)
             .background(colors.bgInput)

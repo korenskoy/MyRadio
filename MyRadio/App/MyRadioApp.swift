@@ -16,7 +16,9 @@ struct MyRadioApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
-        .commands {}
+        .commands {
+            AppShortcuts(state: state)
+        }
 
         WindowGroup(id: "devtools") {
             DevToolsWindowRoot()
@@ -29,6 +31,46 @@ struct MyRadioApp: App {
             PreferencesWindow()
                 .environment(state)
                 .environmentObject(state.updateChecker)
+        }
+    }
+}
+
+// MARK: - Application commands (menu bar + keyboard shortcuts)
+
+private struct AppShortcuts: Commands {
+    let state: AppState
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandMenu("Playback") {
+            Button("Play / Pause") { state.togglePlayPause() }
+                .keyboardShortcut("p", modifiers: .command)
+            Button(state.isMiniMode ? "Exit Mini Player" : "Enter Mini Player") {
+                state.toggleMiniMode()
+            }
+            .keyboardShortcut("m", modifiers: [.control, .command])
+            Divider()
+            Button("Sleep Timer…") { state.showSleepTimer = true }
+                .keyboardShortcut(".", modifiers: .command)
+            Button("Add Custom Station…") { state.showAddStation = true }
+                .keyboardShortcut("n", modifiers: .command)
+        }
+        CommandGroup(after: .textEditing) {
+            Button("Find Stations…") {
+                state.activeTab = .search
+                state.searchFocusRequest = UUID()
+            }
+            .keyboardShortcut("f", modifiers: .command)
+        }
+        CommandGroup(after: .toolbar) {
+            Button(state.logsVisible ? "Hide DevTools" : "Show DevTools") {
+                if state.logsVisible, let w = state.devToolsNSWindow {
+                    w.close()
+                } else {
+                    openWindow(id: "devtools")
+                }
+            }
+            .keyboardShortcut("i", modifiers: [.option, .command])
         }
     }
 }

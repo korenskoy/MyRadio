@@ -33,6 +33,9 @@ final class AppState {
     var searchQuery: String = ""
     var showAddStation = false
     var showSleepTimer = false
+    /// Bumped whenever the user invokes "Focus search" — SearchBar observes this
+    /// to grab keyboard focus. Value itself is meaningless; only the change matters.
+    var searchFocusRequest = UUID()
 
     // MARK: - Collections
     var stations: [Station] = []
@@ -193,6 +196,28 @@ final class AppState {
 
     func togglePlayPause() {
         streamPlayer.togglePlayPause()
+    }
+
+    func toggleMiniMode() {
+        if isMiniMode {
+            isMiniMode = false
+            MiniWindowManager.shared.close()
+            for window in NSApp.windows where window.contentView != nil && window.frame.width > AppLayout.miniWidth {
+                window.makeKeyAndOrderFront(nil)
+                break
+            }
+        } else {
+            isMiniMode = true
+            MiniWindowManager.shared.show(state: self)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                for window in NSApp.windows where window.contentView != nil && window.isVisible {
+                    if window is NSPanel { continue }
+                    if window.frame.width > AppLayout.miniWidth {
+                        window.orderOut(nil)
+                    }
+                }
+            }
+        }
     }
 
     func stopPlayback() {

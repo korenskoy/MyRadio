@@ -493,7 +493,7 @@ private struct UtilityBar: View {
                     isActive: state.sleepTimer.isActive,
                     action: { state.showSleepTimer = true }
                 )
-                UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: "Mini", isActive: false, action: enterMiniMode)
+                UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: "Mini", isActive: false, action: state.toggleMiniMode)
 
                 let homepage = state.currentStation?.homepage.flatMap { $0.isEmpty ? nil : URL(string: $0) }
                 UtilButton(icon: "safari", label: nil, isActive: false,
@@ -518,19 +518,6 @@ private struct UtilityBar: View {
         return "\(s)s"
     }
 
-    private func enterMiniMode() {
-        state.isMiniMode = true
-        MiniWindowManager.shared.show(state: state)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            for window in NSApp.windows where window.contentView != nil && window.isVisible {
-                if window is NSPanel { continue }
-                if window.frame.width > AppLayout.miniWidth {
-                    window.orderOut(nil)
-                }
-            }
-        }
-    }
 }
 
 private struct UtilButton: View {

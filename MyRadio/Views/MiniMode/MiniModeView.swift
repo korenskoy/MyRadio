@@ -32,9 +32,7 @@ struct MiniModeView: View {
             MiniPlayButton()
 
             Button {
-                state.isMiniMode = false
-                MiniWindowManager.shared.close()
-                showMainWindow()
+                state.toggleMiniMode()
             } label: {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(.system(size: 11))
@@ -52,12 +50,6 @@ struct MiniModeView: View {
         .environment(\.appColors, resolvedColors)
     }
 
-    private func showMainWindow() {
-        for window in NSApp.windows where window.contentView != nil && window.frame.width > AppLayout.miniWidth {
-            window.makeKeyAndOrderFront(nil)
-            return
-        }
-    }
 }
 
 // MARK: - Mini Cover
