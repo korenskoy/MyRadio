@@ -67,10 +67,18 @@ final class AppState {
 
     // MARK: - Appearance
     var theme: AppTheme = .auto {
-        didSet { persistPreferences() }
+        didSet {
+            persistPreferences()
+            // Mirror to UserDefaults so the Settings scene (separate SwiftUI tree)
+            // gets a cross-scene invalidation via @AppStorage.
+            UserDefaults.standard.set(theme.rawValue, forKey: "appTheme")
+        }
     }
     var accent: AccentName = .system {
-        didSet { persistPreferences() }
+        didSet {
+            persistPreferences()
+            UserDefaults.standard.set(accent.rawValue, forKey: "appAccent")
+        }
     }
     private(set) var systemColorEpoch: Int = 0
 

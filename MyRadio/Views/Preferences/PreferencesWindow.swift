@@ -50,25 +50,73 @@ enum PrefsSection: String, CaseIterable, Identifiable {
 
 struct PreferencesWindow: View {
     @Environment(AppState.self) private var state
+    // @AppStorage observes UserDefaults.didChangeNotification globally — Settings
+    // scene gets a cross-scene tick even when it isn't the focused window.
+    // AppState.theme.didSet writes the mirror.
+    @AppStorage("appTheme")  private var themeRaw:  String = AppTheme.auto.rawValue
+    @AppStorage("appAccent") private var accentRaw: String = AccentName.system.rawValue
+
+    private var theme:  AppTheme   { AppTheme(rawValue: themeRaw)   ?? state.theme  }
+    private var accent: AccentName { AccentName(rawValue: accentRaw) ?? state.accent }
+
+    /// isDark is resolved synchronously — does NOT depend on @Environment(\.colorScheme),
+    /// which lags one render behind .preferredColorScheme(nil).
+    private var isDark: Bool {
+        switch theme {
+        case .light: return false
+        case .dark:  return true
+        case .auto:
+            return NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        }
+    }
+
+    var body: some View {
+        PreferencesContent(isDark: isDark, accent: accent)
+            .id(theme)                                   // structural rebuild on theme change
+            .colorScheme(isDark ? .dark : .light)        // force SwiftUI children (.primary, SF) into our phase
+            .frame(minWidth: 720, idealWidth: 760, minHeight: 540, idealHeight: 580)
+            .tint(accent.preset.accent)
+            .preferredColorScheme(theme.preferredColorScheme)  // window chrome (title bar, materials)
+    }
+}
+
+private struct PreferencesContent: View {
+    @Environment(AppState.self) private var state
     @SceneStorage("prefsSection") private var rawSection: String = PrefsSection.about.rawValue
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+
+    let isDark: Bool
+    let accent: AccentName
 
     private var section: PrefsSection {
         PrefsSection(rawValue: rawSection) ?? .about
     }
 
+    private var colors: AppColors {
+        _ = state.systemColorEpoch
+        // Build palette from injected isDark — guaranteed in lockstep with the
+        // forced .colorScheme above.
+        return AppColors.make(theme: isDark ? .dark : .light, accent: accent, systemDark: isDark)
+    }
+
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        HStack(spacing: 0) {
             CustomSidebar(
                 selection: Binding(
                     get: { section },
                     set: { rawSection = $0.rawValue }
                 ),
-                accent: state.accent.preset.accent
+                accent: accent.preset.accent
             )
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 220)
-            .toolbar(removing: .sidebarToggle)
-        } detail: {
+            .frame(width: 200)
+            .background(
+                LinearGradient(colors: [colors.bgPanel, colors.bgPanel2],
+                               startPoint: .top, endPoint: .bottom)
+            )
+
+            Rectangle()
+                .fill(colors.border)
+                .frame(width: 0.5)
+
             Group {
                 switch section {
                 case .about:      AboutPane()
@@ -78,13 +126,11 @@ struct PreferencesWindow: View {
                 case .advanced:   AdvancedPane()
                 }
             }
+            .scrollContentBackground(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(colors.bgWindow)
         }
-        .navigationSplitViewStyle(.balanced)
-        .navigationTitle("MyRadio Preferences")
-        .frame(minWidth: 720, idealWidth: 760, minHeight: 540, idealHeight: 580)
-        .tint(state.accent.preset.accent)
-        .preferredColorScheme(state.theme.preferredColorScheme)
+        .environment(\.appColors, colors)
     }
 }
 
@@ -147,6 +193,7 @@ private struct SidebarRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focusEffectDisabled()
     }
 
     private var iconTile: some View {
