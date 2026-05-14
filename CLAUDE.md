@@ -85,6 +85,6 @@ String Catalog (`MyRadio/Localizable.xcstrings`) управляется **тол
 ```
 
 - Catalog лежит по `MyRadio/Localizable.xcstrings`, подцеплен в target автоматически через `PBXFileSystemSynchronizedRootGroup`.
-- Поддерживаемые языки приложения заданы в `MyRadio/Models/AppLanguage.swift`: `en, ru, de, fr, es, az, ja, zh`. Скрипт не валидирует — можно передать любую BCP-47 локаль, но catalog лучше держать синхронным с пикером в Preferences → General.
+- Поддерживаемые языки приложения заданы в `MyRadio/Models/AppLanguage.swift`: `en, ru, de, fr, es, az, fa, ja, zh`. Скрипт не валидирует — можно передать любую BCP-47 локаль, но catalog лучше держать синхронным с пикером в Preferences → General. **Фарси (`fa`) — RTL**: в `AppLanguage.isRTL == true`. SwiftUI автоматически переворачивает layout (`@Environment(\.layoutDirection) == .rightToLeft`), но в коде есть точечные исключения: TitlebarView зажат на `.leftToRight` (трафиклайты macOS всегда слева), и VolumeSlider вручную mirror'ит `.offset(x:)` и `DragGesture`. SF Symbols, обозначающие направление навигации, используют семантические варианты (`chevron.backward`/`.forward`), которые auto-mirror.
 - Внутри обёрток — `scripts/_l10n.py`. Для нестандартной мутации расширяйте Python-модуль, не байпасьте через ручной edit.
 - В тестах/одноразовых проверках перенаправляйте каталог через env: `MYRADIO_CATALOG_PATH=/tmp/test.xcstrings ./scripts/add-l10n.sh ...`.

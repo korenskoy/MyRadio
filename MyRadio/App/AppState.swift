@@ -140,14 +140,25 @@ final class AppState {
 
     // MARK: - General side-effects
 
-    /// Writes/clears the `AppleLanguages` override in standard UserDefaults.
-    /// macOS picks up the change on the next process launch.
+    /// Writes/clears the `AppleLanguages` and `AppleLocale` overrides in
+    /// standard UserDefaults. macOS picks both up on the next process launch.
+    ///
+    /// Why both: `AppleLanguages` controls which `.lproj` Bundle resolves and
+    /// therefore which strings appear; `AppleLocale` controls `Locale.current`,
+    /// which drives number/date formatting. Without `AppleLocale`, a user with
+    /// system region = Russia who picks Persian gets Persian strings but
+    /// Latin-script digits (because `Locale.current` ends up as `fa_RU` whose
+    /// numbering system stays `latn`). Pinning both keeps `42` rendered as
+    /// `۴۲` everywhere we run `Int.formatted()`.
     private func applyLanguageOverride() {
-        let key = "AppleLanguages"
+        let langKey = "AppleLanguages"
+        let regionKey = "AppleLocale"
         if let codes = language.appleLanguagesCodes {
-            UserDefaults.standard.set(codes, forKey: key)
+            UserDefaults.standard.set(codes, forKey: langKey)
+            UserDefaults.standard.set(codes.first, forKey: regionKey)
         } else {
-            UserDefaults.standard.removeObject(forKey: key)
+            UserDefaults.standard.removeObject(forKey: langKey)
+            UserDefaults.standard.removeObject(forKey: regionKey)
         }
     }
 

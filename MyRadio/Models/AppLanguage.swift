@@ -11,9 +11,16 @@ import Foundation
 
 enum AppLanguage: String, CaseIterable, Identifiable, Codable {
     case system
-    case en, ru, de, fr, es, az, ja, zh
+    case en, ru, de, fr, es, az, fa, ja, zh
 
     var id: String { rawValue }
+
+    /// `true` for languages whose script reads right-to-left. The Preferences →
+    /// General picker uses this to keep its option labels in their natural
+    /// reading direction even when the surrounding UI is LTR (and vice versa).
+    var isRTL: Bool {
+        self == .fa
+    }
 
     /// Label rendered in the picker, written in the language itself.
     /// System falls through to the OS preferred language so the user sees
@@ -30,6 +37,7 @@ enum AppLanguage: String, CaseIterable, Identifiable, Codable {
         case .fr: return "Français"
         case .es: return "Español"
         case .az: return "Azərbaycan"
+        case .fa: return "فارسی"
         case .ja: return "日本語"
         case .zh: return "中文"
         }
@@ -46,6 +54,7 @@ enum AppLanguage: String, CaseIterable, Identifiable, Codable {
         case .fr: return ["fr"]
         case .es: return ["es"]
         case .az: return ["az"]
+        case .fa: return ["fa"]
         case .ja: return ["ja"]
         case .zh: return ["zh-Hans"]
         }

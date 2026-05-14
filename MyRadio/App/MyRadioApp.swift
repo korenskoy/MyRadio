@@ -7,12 +7,27 @@ struct MyRadioApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var state = AppState()
 
+    /// Resolved once per launch from the active bundle localization. On macOS
+    /// SwiftUI does NOT auto-flip `\.layoutDirection` from the system locale
+    /// the way iOS does — every root view has to opt in explicitly. The
+    /// language picker writes `AppleLanguages` and asks for a restart; on the
+    /// next launch `Bundle.main.preferredLocalizations` reflects that pick,
+    /// and this property turns it into the matching SwiftUI direction.
+    static var preferredLayoutDirection: LayoutDirection {
+        let preferred = Bundle.main.preferredLocalizations.first ?? "en"
+        let code = Locale(identifier: preferred).language.languageCode?.identifier ?? preferred
+        return Locale.Language(identifier: code).characterDirection == .rightToLeft
+            ? .rightToLeft
+            : .leftToRight
+    }
+
     var body: some Scene {
         WindowGroup(id: "main") {
             RootView()
                 .environment(state)
                 .environmentObject(state.updateChecker)
                 .ignoresSafeArea()
+                .environment(\.layoutDirection, Self.preferredLayoutDirection)
                 .onAppear { appDelegate.state = state }
         }
         .windowStyle(.hiddenTitleBar)
@@ -21,9 +36,12 @@ struct MyRadioApp: App {
             AppShortcuts(state: state)
         }
 
+        // DevTools intentionally pinned to LTR — it's developer tooling kept in
+        // English regardless of the user's chosen language (see DebugTab.label).
         WindowGroup(id: "devtools") {
             DevToolsWindowRoot()
                 .environment(state)
+                .environment(\.layoutDirection, .leftToRight)
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 900, height: 480)
@@ -32,6 +50,7 @@ struct MyRadioApp: App {
             PreferencesWindow()
                 .environment(state)
                 .environmentObject(state.updateChecker)
+                .environment(\.layoutDirection, Self.preferredLayoutDirection)
         }
     }
 }

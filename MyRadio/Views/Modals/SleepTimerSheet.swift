@@ -112,15 +112,15 @@ struct SleepTimerSheet: View {
             Slider(value: $sliderValue)
                 .tint(colors.accent.strong)
             HStack {
-                Text("5m").font(Typography.tag).foregroundStyle(colors.fg3)
+                Text(verbatim: DurationLabel.narrow(minutes: 5)).font(Typography.tag).foregroundStyle(colors.fg3)
                 Spacer()
-                Text("1h").font(Typography.tag).foregroundStyle(colors.fg3)
+                Text(verbatim: DurationLabel.narrow(minutes: 60)).font(Typography.tag).foregroundStyle(colors.fg3)
                 Spacer()
-                Text("2h").font(Typography.tag).foregroundStyle(colors.fg3)
+                Text(verbatim: DurationLabel.narrow(minutes: 120)).font(Typography.tag).foregroundStyle(colors.fg3)
                 Spacer()
-                Text("4h").font(Typography.tag).foregroundStyle(colors.fg3)
+                Text(verbatim: DurationLabel.narrow(minutes: 240)).font(Typography.tag).foregroundStyle(colors.fg3)
                 Spacer()
-                Text("8h").font(Typography.tag).foregroundStyle(colors.fg3)
+                Text(verbatim: DurationLabel.narrow(minutes: 480)).font(Typography.tag).foregroundStyle(colors.fg3)
             }
         }
     }
@@ -200,25 +200,11 @@ struct SleepTimerSheet: View {
     }
 
     private static func formatDuration(_ minutes: Double) -> String {
-        let m = Int(minutes.rounded())
-        guard m >= 60 else { return "\(m)m" }
-        let h = m / 60
-        let rem = m % 60
-        return rem == 0 ? "\(h)h" : "\(h)h \(rem)m"
+        DurationLabel.narrow(minutes: Int(minutes.rounded()))
     }
 
     private static func formatRemaining(_ seconds: TimeInterval) -> String {
-        let total = Int(max(0, seconds))
-        let m = total / 60
-        let s = total % 60
-        if m >= 60 {
-            let h = m / 60
-            let rem = m % 60
-            return rem == 0 ? "\(h)h" : "\(h)h \(rem)m"
-        }
-        if m > 0 && seconds > 90 { return "\(m)m" }
-        if m > 0 { return "\(m)m \(String(format: "%02d", s))s" }
-        return "\(s)s"
+        DurationLabel.narrow(seconds: seconds)
     }
 }
 

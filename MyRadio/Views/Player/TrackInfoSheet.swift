@@ -11,6 +11,16 @@ struct TrackInfoSheet: View {
     @State private var previewPlayer: AVPlayer?
     @State private var isPreviewPlaying = false
     @Environment(\.appColors) private var colors
+    @Environment(\.layoutDirection) private var layoutDirection
+
+    /// The macOS vertical scroller stays on the physical-right edge of the
+    /// ScrollView regardless of layout direction (NSScrollView default). To
+    /// keep info from butting up against it, we add gutter padding on the
+    /// physical-right side — that's `.trailing` in LTR and `.leading` in RTL,
+    /// since `Edge.Set` is flow-relative.
+    private var scrollbarSidePadding: Edge.Set {
+        layoutDirection == .rightToLeft ? .leading : .trailing
+    }
 
     private var track: iTunesTrack? {
         guard !tracks.isEmpty, selectedIndex < tracks.count else { return nil }
@@ -32,22 +42,22 @@ struct TrackInfoSheet: View {
 
                 if let t = track {
                     HStack(alignment: .top, spacing: 28) {
-                        // Left: fixed artwork column
+                        // Leading column: fixed artwork
                         artwork(for: t)
                             .padding(.leading, 24)
                             .padding(.vertical, 24)
 
-                        // Right: scrollable info column
+                        // Trailing column: scrollable info
                         ScrollView {
                             info(for: t)
-                                .padding(.trailing, 24)
+                                .padding(scrollbarSidePadding, 24)
                                 .padding(.vertical, 24)
                         }
                     }
                 }
             }
         }
-        .frame(width: 820, height: 540)
+        .frame(width: 890, height: 540)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.3), radius: 40, y: 20)
         .task { await loadArtworks() }
@@ -136,7 +146,9 @@ struct TrackInfoSheet: View {
             HStack(spacing: 4) {
                 Text("from").foregroundStyle(colors.fg3)
                 Text(t.album).foregroundStyle(colors.fg2)
-                if let y = t.year { Text("· \(y)").foregroundStyle(colors.fg3) }
+                if let y = t.year {
+                    Text(verbatim: "· \(y.formatted())").foregroundStyle(colors.fg3)
+                }
             }
             .font(.system(size: 13))
             .padding(.bottom, 16)
@@ -147,7 +159,8 @@ struct TrackInfoSheet: View {
                 metaCell(label: "COUNTRY", value: t.country ?? "—")
                 if let p = t.price, let c = t.currency, p > 0 {
                     let sym = Locale(identifier: "en_US@currency=\(c)").currencySymbol ?? "$"
-                    metaCell(label: "ITUNES", value: String(format: "\(sym)%.2f", p))
+                    let priceStr = String(format: "%.2f", locale: Locale.current, p)
+                    metaCell(label: "ITUNES", value: "\(sym)\(priceStr)")
                 }
             }
             .padding(.bottom, 16)
@@ -277,8 +290,8 @@ struct TrackInfoSheet: View {
                         .lineLimit(1)
                     HStack(spacing: 4) {
                         Text(t.album)
-                        Text("·")
-                        Text(t.year.map(String.init) ?? "")
+                        Text(verbatim: "·")
+                        Text(t.year?.formatted() ?? "")
                     }
                     .font(.system(size: 11))
                     .foregroundStyle(colors.fg3)

@@ -21,14 +21,14 @@ struct StationRow: View {
                     Text(time)
                         .font(.system(size: 10.5, design: .monospaced))
                 } else if showRank {
-                    Text(verbatim: "\(rankNumber)")
+                    Text(verbatim: rankNumber.formatted())
                         .font(Typography.mono)
                 } else if isPlaying {
                     Text(verbatim: "♪")
                         .font(Typography.mono)
                         .foregroundStyle(colors.accent.strong)
                 } else {
-                    Text(verbatim: "\(index + 1)")
+                    Text(verbatim: (index + 1).formatted())
                         .font(Typography.mono)
                 }
             }

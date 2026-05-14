@@ -242,7 +242,7 @@ private final class ClusterAnnotationView: MKAnnotationView {
         didSet {
             guard let c = annotation as? MKClusterAnnotation else { return }
             let n = c.memberAnnotations.count
-            label.stringValue = n < 1000 ? "\(n)" : "\(n / 1000)k"
+            label.stringValue = n < 1000 ? n.formatted() : "\((n / 1000).formatted())k"
         }
     }
 }
@@ -277,11 +277,11 @@ private struct StationCallout: View {
                     }
                     Text(station.countryName).font(Typography.meta).foregroundStyle(colors.fg3)
                     if let codec = station.codecDisplay {
-                        Text("·").foregroundStyle(colors.fg4)
+                        Text(verbatim: "·").foregroundStyle(colors.fg4)
                         Text(codec).font(Typography.meta).foregroundStyle(colors.fg3)
                     }
                     if let br = station.bitrateFormatted {
-                        Text("·").foregroundStyle(colors.fg4)
+                        Text(verbatim: "·").foregroundStyle(colors.fg4)
                         Text(br).font(Typography.meta).foregroundStyle(colors.fg3)
                     }
                 }

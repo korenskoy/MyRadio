@@ -123,7 +123,7 @@ struct CountriesTab: View {
                     state.countryStations = []
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
+                        Image(systemName: "chevron.backward")
                             .font(.system(size: 11, weight: .semibold))
                         Text("Back")
                             .font(.system(size: 12.5, weight: .medium))

@@ -34,11 +34,13 @@ struct RootView: View {
             AddStationModal()
                 .environment(state)
                 .environment(\.appColors, colors)
+                .environment(\.layoutDirection, MyRadioApp.preferredLayoutDirection)
         }
         .sheet(isPresented: Bindable(state).showSleepTimer) {
             SleepTimerSheet()
                 .environment(state)
                 .environment(\.appColors, colors)
+                .environment(\.layoutDirection, MyRadioApp.preferredLayoutDirection)
         }
     }
 }

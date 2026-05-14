@@ -146,6 +146,7 @@ final class MiniWindowManager {
         let hostingView = NSHostingView(rootView:
             MiniModeView()
                 .environment(state)
+                .environment(\.layoutDirection, MyRadioApp.preferredLayoutDirection)
         )
         panel.contentView = hostingView
 

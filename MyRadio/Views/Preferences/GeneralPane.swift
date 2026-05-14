@@ -66,7 +66,7 @@ struct GeneralPane: View {
                     label: "Launch at login",
                     hint: "Open MyRadio automatically when you sign in."
                 ) {
-                    Toggle("", isOn: $state.launchAtLogin)
+                    Toggle(isOn: $state.launchAtLogin) { EmptyView() }
                         .labelsHidden()
                         .toggleStyle(.switch)
                 }
@@ -75,7 +75,7 @@ struct GeneralPane: View {
                     label: "Restore last station on launch",
                     hint: "Re-selects the last station you played, but does not auto-play."
                 ) {
-                    Toggle("", isOn: $state.restoreLastStation)
+                    Toggle(isOn: $state.restoreLastStation) { EmptyView() }
                         .labelsHidden()
                         .toggleStyle(.switch)
                 }
@@ -92,7 +92,7 @@ struct GeneralPane: View {
                 label: "Confirm quit while playing",
                 hint: "Ask before quitting if a stream is currently playing."
             ) {
-                Toggle("", isOn: $state.confirmQuit)
+                Toggle(isOn: $state.confirmQuit) { EmptyView() }
                     .labelsHidden()
                     .toggleStyle(.switch)
             }

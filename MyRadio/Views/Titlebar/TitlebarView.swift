@@ -21,6 +21,10 @@ struct TitlebarView: View {
             )
             .allowsHitTesting(false)
 
+            // Window chrome stays LTR even when the content/UI is RTL: macOS
+            // keeps the traffic lights on the left edge regardless of layout
+            // direction, so the 74-pt placeholder and the right-side controls
+            // must keep their physical positions.
             HStack(spacing: 0) {
                 // Traffic lights placeholder area (real buttons controlled by NSWindow)
                 Spacer().frame(width: 74)
@@ -51,6 +55,7 @@ struct TitlebarView: View {
                 }
                 .padding(.trailing, 14)
             }
+            .environment(\.layoutDirection, .leftToRight)
         }
         .frame(height: AppLayout.titlebarHeight)
         .overlay(alignment: .bottom) {

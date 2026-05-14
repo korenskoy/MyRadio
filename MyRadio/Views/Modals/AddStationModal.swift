@@ -154,7 +154,7 @@ struct AddStationModal: View {
                     .font(.system(size: 12.5, weight: .medium))
                     .foregroundStyle(colors.fg2)
                 if required {
-                    Text("*")
+                    Text(verbatim: "*")
                         .font(.system(size: 12.5, weight: .medium))
                         .foregroundStyle(colors.statusErr)
                 }

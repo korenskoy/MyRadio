@@ -22,7 +22,7 @@ extension Station {
 
     var bitrateFormatted: String? {
         guard let br = bitrate, br > 0 else { return nil }
-        return "\(br)k"
+        return "\(br.formatted())k"
     }
 
     var codecDisplay: String? {
@@ -30,9 +30,11 @@ extension Station {
     }
 
     var votesFormatted: String {
-        guard let v = votes else { return "0" }
-        if v >= 1000 { return String(format: "%.1fk", Double(v) / 1000) }
-        return "\(v)"
+        guard let v = votes else { return 0.formatted() }
+        if v >= 1000 {
+            return String(format: "%.1fk", locale: Locale.current, Double(v) / 1000)
+        }
+        return v.formatted()
     }
 
     var votesLocalized: String {

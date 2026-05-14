@@ -9,10 +9,12 @@ struct HistoryEntry: Codable, Identifiable {
 
     var durationFormatted: String {
         let minutes = Int(duration) / 60
-        if minutes < 60 { return "\(minutes)m" }
+        if minutes < 60 { return "\(minutes.formatted())m" }
         let h = minutes / 60
         let m = minutes % 60
-        return m > 0 ? "\(h)h \(m)m" : "\(h)h"
+        return m > 0
+            ? "\(h.formatted())h \(m.formatted())m"
+            : "\(h.formatted())h"
     }
 
     var timeFormatted: String {

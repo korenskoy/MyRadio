@@ -43,7 +43,7 @@ struct AboutPane: View {
                 .interpolation(.high)
                 .frame(width: 96, height: 96)
             VStack(alignment: .leading, spacing: 6) {
-                Text("MyRadio")
+                Text(verbatim: "MyRadio")
                     .font(.system(size: 26, weight: .bold))
                 Text("Native radio client for macOS")
                     .font(.callout)
@@ -164,10 +164,10 @@ struct AboutPane: View {
                 Text("Auto-check on launch")
                     .font(.system(size: 13))
                 Spacer()
-                Toggle("", isOn: Binding(
+                Toggle(isOn: Binding(
                     get: { updateChecker.autoCheckOnLaunch },
                     set: { updateChecker.autoCheckOnLaunch = $0 }
-                ))
+                )) { EmptyView() }
                 .toggleStyle(.switch)
                 .labelsHidden()
             }
@@ -204,7 +204,7 @@ struct AboutPane: View {
                     .font(.system(size: 13))
                     .foregroundStyle(.primary)
                 Spacer()
-                Image(systemName: "chevron.right")
+                Image(systemName: "chevron.forward")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.tertiary)
             }
@@ -219,7 +219,7 @@ struct AboutPane: View {
 
     private var credits: some View {
         HStack(spacing: 6) {
-            Text("♥").foregroundStyle(.pink)
+            Text(verbatim: "♥").foregroundStyle(.pink)
             Text("Powered by the **radio-browser.info** community API")
         }
         .font(.system(size: 11.5))

@@ -33,10 +33,10 @@ private struct TabButton: View {
         switch tab {
         case .favorites:
             let c = state.favorites.count
-            return c > 0 ? "\(c)" : nil
+            return c > 0 ? c.formatted() : nil
         case .history:
             let c = state.history.count
-            return c > 0 ? "\(c)" : nil
+            return c > 0 ? c.formatted() : nil
         default:
             return nil
         }

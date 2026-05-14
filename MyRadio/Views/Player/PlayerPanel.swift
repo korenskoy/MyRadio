@@ -144,7 +144,7 @@ private struct QualityBadge: View {
                     Text(codec)
                 }
                 if let br = station.bitrateFormatted {
-                    if station.codecDisplay != nil { Text(" · ") }
+                    if station.codecDisplay != nil { Text(verbatim: " · ") }
                     Text(br)
                 }
             }
@@ -209,18 +209,18 @@ private struct StationMetaView: View {
                 Text(station?.countryName ?? "—")
                     .font(.system(size: 12))
                     .foregroundStyle(colors.fg2)
-                Text("·")
+                Text(verbatim: "·")
                     .foregroundStyle(colors.fg4)
                 Text(station?.language ?? "—")
                     .font(.system(size: 12))
                     .foregroundStyle(colors.fg2)
-                Text("·")
+                Text(verbatim: "·")
                     .foregroundStyle(colors.fg4)
                 HStack(spacing: 2) {
                     Text(station?.votesLocalized ?? "0")
                         .font(.system(size: 12))
                         .foregroundStyle(colors.fg2)
-                    Text("★")
+                    Text(verbatim: "★")
                         .font(.system(size: 11))
                         .foregroundStyle(colors.fg2)
                 }
@@ -238,7 +238,7 @@ private struct StationMetaView: View {
                         .background(colors.bgPill)
                         .clipShape(Capsule())
                 }
-                Text(" ")
+                Text(verbatim: " ")
                     .font(.system(size: 11, weight: .medium))
                     .padding(.vertical, 3)
                     .opacity(0)
@@ -340,6 +340,7 @@ private struct NowPlayingView: View {
                 onDismiss: { showSheet = false }
             )
             .environment(\.appColors, colors)
+            .environment(\.layoutDirection, MyRadioApp.preferredLayoutDirection)
         }
         .onChange(of: state.nowPlayingTitle) { _, newTitle in
             guard newTitle != lastTitle else { return }
@@ -420,7 +421,7 @@ private struct VolumeRow: View {
 
             VolumeSlider()
 
-            Text(verbatim: "\(Int(state.volume * 100))")
+            Text(verbatim: Int(state.volume * 100).formatted())
                 .font(.system(size: 10.5, design: .monospaced))
                 .foregroundStyle(colors.fg3)
                 .frame(minWidth: 24, alignment: .trailing)
@@ -432,11 +433,18 @@ private struct VolumeRow: View {
 private struct VolumeSlider: View {
     @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
+    @Environment(\.layoutDirection) private var layoutDirection
 
     var body: some View {
         GeometryReader { geo in
             let width = geo.size.width
             let fillWidth = width * state.volume
+            // `.offset(x:)` ignores layoutDirection; mirror it manually in RTL
+            // so the knob still tracks the visible fill edge (which auto-flips
+            // because the parent ZStack uses .leading alignment).
+            let knobX: CGFloat = layoutDirection == .rightToLeft
+                ? -(fillWidth - 6)
+                : (fillWidth - 6)
 
             ZStack(alignment: .leading) {
                 // Track
@@ -458,14 +466,17 @@ private struct VolumeSlider: View {
                     .overlay(
                         Circle().strokeBorder(.black.opacity(0.1), lineWidth: 0.5)
                     )
-                    .offset(x: fillWidth - 6)
+                    .offset(x: knobX)
             }
             .frame(height: geo.size.height)
             .contentShape(Rectangle())
             .highPriorityGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        state.volume = max(0, min(1, value.location.x / width))
+                        let normalized = value.location.x / width
+                        state.volume = layoutDirection == .rightToLeft
+                            ? max(0, min(1, 1 - normalized))
+                            : max(0, min(1, normalized))
                     }
             )
         }
@@ -506,16 +517,7 @@ private struct UtilityBar: View {
     }
 
     private var sleepCountdown: String {
-        let total = Int(max(0, state.sleepTimer.remainingSeconds))
-        let m = total / 60
-        let s = total % 60
-        if m >= 60 {
-            let h = m / 60
-            let rem = m % 60
-            return rem == 0 ? "\(h)h" : "\(h)h \(rem)m"
-        }
-        if m > 0 { return "\(m)m" }
-        return "\(s)s"
+        DurationLabel.narrow(seconds: state.sleepTimer.remainingSeconds)
     }
 
 }

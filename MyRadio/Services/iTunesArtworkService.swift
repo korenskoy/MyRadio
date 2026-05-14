@@ -18,7 +18,9 @@ struct iTunesTrack: Identifiable {
     var duration: String? {
         guard let ms = durationMs else { return nil }
         let s = ms / 1000
-        return "\(s / 60):\(String(format: "%02d", s % 60))"
+        let mins = (s / 60).formatted()
+        let secs = String(format: "%02d", locale: Locale.current, s % 60)
+        return "\(mins):\(secs)"
     }
 
     var artwork600: URL? {
