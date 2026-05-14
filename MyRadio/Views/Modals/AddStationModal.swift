@@ -60,7 +60,9 @@ struct AddStationModal: View {
                             Image(systemName: "antenna.radiowaves.left.and.right")
                                 .font(.system(size: 11))
                         }
-                        Text(isTesting ? "Testing..." : "Test Stream")
+                        Text(isTesting
+                             ? String(localized: "Testing...")
+                             : String(localized: "Test Stream"))
                             .font(.system(size: 12.5, weight: .medium))
                     }
                     .foregroundStyle(colors.fg)
@@ -140,8 +142,8 @@ struct AddStationModal: View {
     // MARK: - Field row
 
     private func fieldRow(
-        label: String,
-        placeholder: String,
+        label: LocalizedStringKey,
+        placeholder: LocalizedStringKey,
         text: Binding<String>,
         required: Bool = false,
         isNumeric: Bool = false
@@ -200,7 +202,7 @@ struct AddStationModal: View {
     private func testStream() {
         let urlString = streamURL.trimmingCharacters(in: .whitespaces)
         guard let url = URL(string: urlString) else {
-            testResult = TestResult(isSuccess: false, message: "Invalid URL")
+            testResult = TestResult(isSuccess: false, message: String(localized: "Invalid URL"))
             return
         }
 
@@ -244,11 +246,11 @@ private enum StreamTester {
             try? await Task.sleep(for: .milliseconds(500))
             if Task.isCancelled {
                 player.pause()
-                return TestResult(isSuccess: false, message: "Cancelled")
+                return TestResult(isSuccess: false, message: String(localized: "Cancelled"))
             }
             if player.rate > 0 {
                 player.pause()
-                return TestResult(isSuccess: true, message: "Stream OK")
+                return TestResult(isSuccess: true, message: String(localized: "Stream OK"))
             }
             if let error = player.currentItem?.error {
                 player.pause()
@@ -257,6 +259,6 @@ private enum StreamTester {
         }
 
         player.pause()
-        return TestResult(isSuccess: false, message: "Timeout")
+        return TestResult(isSuccess: false, message: String(localized: "Timeout"))
     }
 }

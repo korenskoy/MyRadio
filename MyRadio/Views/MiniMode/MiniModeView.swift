@@ -15,13 +15,13 @@ struct MiniModeView: View {
             MiniCoverView()
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(state.currentStation?.name ?? "No Station")
+                Text(state.currentStation?.name ?? String(localized: "No Station"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(resolvedColors.fg)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
-                Text(state.nowPlayingTitle ?? "Not playing")
+                Text(state.nowPlayingTitle ?? String(localized: "Not playing"))
                     .font(.system(size: 11))
                     .foregroundStyle(resolvedColors.fg2)
                     .lineLimit(1)

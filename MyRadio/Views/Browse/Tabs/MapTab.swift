@@ -40,7 +40,7 @@ struct MapTab: View {
                 Text("\(geoStations.count) stations")
                     .font(Typography.meta)
                     .foregroundStyle(colors.fg3)
-                BrowseButton(label: "", icon: "arrow.clockwise", style: .ghost) {
+                BrowseButton(label: nil, icon: "arrow.clockwise", style: .ghost) {
                     Task { await state.reloadMapStations() }
                 }
             }

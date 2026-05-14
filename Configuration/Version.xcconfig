@@ -1,2 +1,8 @@
 MARKETING_VERSION = 1.1
 CURRENT_PROJECT_VERSION = 7
+
+// Xcode 16+ auto-generates Swift symbols (.localized accessors) from string-catalog
+// keys; case-insensitive collisions like "Add Station" / "Add station" trigger a
+// hard build error. We keep both forms in the catalog on purpose so existing
+// SwiftUI literals resolve unchanged, so symbol generation is disabled.
+STRING_CATALOG_GENERATE_SYMBOLS = NO

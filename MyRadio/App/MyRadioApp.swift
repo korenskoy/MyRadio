@@ -46,7 +46,9 @@ private struct AppShortcuts: Commands {
         CommandMenu("Playback") {
             Button("Play / Pause") { state.togglePlayPause() }
                 .keyboardShortcut("p", modifiers: .command)
-            Button(state.isMiniMode ? "Exit Mini Player" : "Enter Mini Player") {
+            Button(state.isMiniMode
+                   ? String(localized: "Exit Mini Player")
+                   : String(localized: "Enter Mini Player")) {
                 state.toggleMiniMode()
             }
             .keyboardShortcut("m", modifiers: [.control, .command])
@@ -64,7 +66,9 @@ private struct AppShortcuts: Commands {
             .keyboardShortcut("f", modifiers: .command)
         }
         CommandGroup(after: .toolbar) {
-            Button(state.logsVisible ? "Hide DevTools" : "Show DevTools") {
+            Button(state.logsVisible
+                   ? String(localized: "Hide DevTools")
+                   : String(localized: "Show DevTools")) {
                 if state.logsVisible, let w = state.devToolsNSWindow {
                     w.close()
                 } else {
@@ -100,11 +104,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let state, state.confirmQuit, state.isPlaying else { return .terminateNow }
         let alert = NSAlert()
-        alert.messageText = "Quit MyRadio?"
-        alert.informativeText = "Audio is currently playing. Quitting will stop the stream."
+        alert.messageText = String(localized: "Quit MyRadio?")
+        alert.informativeText = String(localized: "Audio is currently playing. Quitting will stop the stream.")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Quit")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: String(localized: "Quit"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
         return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
     }
 

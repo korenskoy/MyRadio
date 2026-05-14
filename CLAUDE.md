@@ -63,3 +63,28 @@ xcodebuild -resolvePackageDependencies -project MyRadio.xcodeproj
 - App entrypoint — `@main struct MyRadioApp: App` в `MyRadio/App/MyRadioApp.swift`.
 - Главное окно — SwiftUI `WindowGroup`. Для воспроизведения аудио на macOS вероятно понадобится `AVFoundation` / `AVPlayer` поверх станций из `RadioBrowserKit`.
 - Ассеты (icons, accent color) — только через `Assets.xcassets`.
+
+## Локализация
+
+String Catalog (`MyRadio/Localizable.xcstrings`) управляется **только** через `scripts/add-l10n.sh` и `scripts/remove-l10n.sh`. Не редактируйте `.xcstrings` руками — скрипты сделаны специально, чтобы не гонять JSON-каталог через Read/Edit на каждое изменение.
+
+```bash
+# Добавить/обновить ключ. KEY = английский source; не переданные локали не создаются.
+./scripts/add-l10n.sh "Source English text" \
+  --comment "Where it appears" \
+  --ru "Перевод" --de "Übersetzung" --az "Tərcümə"
+
+# Дозалить локали к существующему ключу — повторный вызов с другим набором флагов.
+./scripts/add-l10n.sh "Source English text" --fr "Traduction"
+
+# Снести один язык (исходную локаль `en` индивидуально удалить нельзя):
+./scripts/remove-l10n.sh "Source English text" --locale ru
+
+# Снести ключ целиком:
+./scripts/remove-l10n.sh "Source English text"
+```
+
+- Catalog лежит по `MyRadio/Localizable.xcstrings`, подцеплен в target автоматически через `PBXFileSystemSynchronizedRootGroup`.
+- Поддерживаемые языки приложения заданы в `MyRadio/Models/AppLanguage.swift`: `en, ru, de, fr, es, az, ja, zh`. Скрипт не валидирует — можно передать любую BCP-47 локаль, но catalog лучше держать синхронным с пикером в Preferences → General.
+- Внутри обёрток — `scripts/_l10n.py`. Для нестандартной мутации расширяйте Python-модуль, не байпасьте через ручной edit.
+- В тестах/одноразовых проверках перенаправляйте каталог через env: `MYRADIO_CATALOG_PATH=/tmp/test.xcstrings ./scripts/add-l10n.sh ...`.

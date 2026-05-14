@@ -420,7 +420,7 @@ private struct VolumeRow: View {
 
             VolumeSlider()
 
-            Text("\(Int(state.volume * 100))")
+            Text(verbatim: "\(Int(state.volume * 100))")
                 .font(.system(size: 10.5, design: .monospaced))
                 .foregroundStyle(colors.fg3)
                 .frame(minWidth: 24, alignment: .trailing)
@@ -489,15 +489,15 @@ private struct UtilityBar: View {
             HStack(spacing: 8) {
                 UtilButton(
                     icon: "bed.double",
-                    label: state.sleepTimer.isActive ? sleepCountdown : "Sleep",
+                    label: state.sleepTimer.isActive ? sleepCountdown : String(localized: "Sleep"),
                     isActive: state.sleepTimer.isActive,
                     action: { state.showSleepTimer = true }
                 )
-                UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: "Mini", isActive: false, action: state.toggleMiniMode)
+                UtilButton(icon: "arrow.down.right.and.arrow.up.left", label: String(localized: "Mini"), isActive: false, action: state.toggleMiniMode)
 
                 let homepage = state.currentStation?.homepage.flatMap { $0.isEmpty ? nil : URL(string: $0) }
                 UtilButton(icon: "safari", label: nil, isActive: false,
-                           dimmed: homepage == nil, title: "Open station website") {
+                           dimmed: homepage == nil, title: String(localized: "Open station website")) {
                     if let url = homepage { NSWorkspace.shared.open(url) }
                 }
             }

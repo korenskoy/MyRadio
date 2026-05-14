@@ -2,8 +2,8 @@ import SwiftUI
 import RadioBrowserKit
 
 struct StationListSection: View {
-    var title: String? = nil
-    var subtitle: String? = nil
+    var title: LocalizedStringKey? = nil
+    var subtitle: LocalizedStringKey? = nil
     let stations: [Station]
     var showRank: Bool = false
 

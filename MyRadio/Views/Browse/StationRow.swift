@@ -21,14 +21,14 @@ struct StationRow: View {
                     Text(time)
                         .font(.system(size: 10.5, design: .monospaced))
                 } else if showRank {
-                    Text("\(rankNumber)")
+                    Text(verbatim: "\(rankNumber)")
                         .font(Typography.mono)
                 } else if isPlaying {
-                    Text("♪")
+                    Text(verbatim: "♪")
                         .font(Typography.mono)
                         .foregroundStyle(colors.accent.strong)
                 } else {
-                    Text("\(index + 1)")
+                    Text(verbatim: "\(index + 1)")
                         .font(Typography.mono)
                 }
             }
@@ -71,7 +71,7 @@ struct StationRow: View {
                                 Text(codec)
                             }
                             if let br = station.bitrateFormatted {
-                                Text(" \(br)")
+                                Text(verbatim: " \(br)")
                             }
                         }
                         .font(.system(size: 10.5, design: .monospaced))

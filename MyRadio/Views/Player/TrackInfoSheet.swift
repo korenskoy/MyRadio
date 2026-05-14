@@ -169,7 +169,7 @@ struct TrackInfoSheet: View {
 
     // MARK: - Meta cell
 
-    private func metaCell(label: String, value: String) -> some View {
+    private func metaCell(label: LocalizedStringKey, value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
                 .font(.system(size: 9.5, weight: .semibold))
@@ -191,7 +191,9 @@ struct TrackInfoSheet: View {
             HStack(spacing: 6) {
                 Image(systemName: isPreviewPlaying ? "stop.fill" : "play.fill")
                     .font(.system(size: 11))
-                Text(isPreviewPlaying ? "Stop" : "Preview 30s")
+                Text(isPreviewPlaying
+                     ? String(localized: "Stop")
+                     : String(localized: "Preview 30s"))
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundStyle(hasPreview ? colors.accent.fg : colors.fg3)

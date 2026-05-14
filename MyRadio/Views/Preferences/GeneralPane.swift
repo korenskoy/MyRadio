@@ -101,8 +101,9 @@ struct GeneralPane: View {
 
     // MARK: Layout helpers — same shape as AdvancedPane / ShortcutsPane
 
-    private func groupHeader(_ text: String) -> some View {
-        Text(text.uppercased())
+    private func groupHeader(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .textCase(.uppercase)
             .font(.system(size: 10.5, weight: .semibold))
             .foregroundStyle(.secondary)
             .padding(.top, 4)
@@ -123,15 +124,15 @@ struct GeneralPane: View {
 
     @ViewBuilder
     private func row<Trailing: View>(
-        label: String,
-        hint: String? = nil,
+        label: LocalizedStringKey,
+        hint: LocalizedStringKey? = nil,
         @ViewBuilder trailing: () -> Trailing
     ) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.system(size: 13))
-                if let hint, !hint.isEmpty {
+                if let hint {
                     Text(hint)
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)

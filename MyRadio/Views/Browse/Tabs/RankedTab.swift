@@ -17,8 +17,8 @@ struct RankedTab: View {
 
     private var label: String {
         switch sortBy {
-        case .votes: "votes"
-        case .clicks: "clicks"
+        case .votes:  String(localized: "votes")
+        case .clicks: String(localized: "clicks")
         }
     }
 
@@ -32,7 +32,7 @@ struct RankedTab: View {
                 Text("\(data.count) stations · by \(label)")
                     .font(Typography.meta)
                     .foregroundStyle(colors.fg3)
-                BrowseButton(label: "", icon: "arrow.clockwise", style: .ghost) {
+                BrowseButton(label: nil, icon: "arrow.clockwise", style: .ghost) {
                     Task {
                         switch sortBy {
                         case .votes:  await state.reloadTopVoted()

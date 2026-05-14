@@ -49,7 +49,7 @@ extension Station {
     }
 
     var countryName: String {
-        guard let code = countrycode, code.count == 2 else { return "Custom" }
+        guard let code = countrycode, code.count == 2 else { return String(localized: "Custom") }
         return Locale.current.localizedString(forRegionCode: code) ?? code
     }
 }

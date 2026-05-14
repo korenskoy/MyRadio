@@ -65,7 +65,7 @@ struct CountriesTab: View {
             Text("\(state.apiCountries.count) countries · \(totalStations.formatted()) stations")
                 .font(Typography.meta)
                 .foregroundStyle(colors.fg3)
-            BrowseButton(label: "", icon: "arrow.clockwise", style: .ghost) {
+            BrowseButton(label: nil, icon: "arrow.clockwise", style: .ghost) {
                 Task { await state.reloadCountries() }
             }
         }
@@ -163,11 +163,22 @@ enum CountryFlag {
         isoCode(for: name).map(flagEmoji) ?? "🌐"
     }
 
-    /// Clean display name from the locale (e.g. "Russia" instead of "The Russian Federation").
+    /// Locale-aware display name. The API often sends long/awkward English forms
+    /// ("The Russian Federation"); we resolve them to ISO codes and then ask
+    /// `Locale.current` for the canonical display name so country lists translate
+    /// alongside the rest of the UI.
     static func displayName(for name: String) -> String {
         guard let code = isoCode(for: name) else { return name }
-        if let override = displayOverrides[code] { return override }
-        return Locale(identifier: "en_US").localizedString(forRegionCode: code) ?? name
+        let locale = Locale.current
+        // macOS 13+ returns "China mainland" for CN in English; preserve our clean
+        // English override only for English locales — other languages already get
+        // a clean native name (e.g. "Китай", "中国").
+        if code == "CN",
+           locale.language.languageCode?.identifier == "en",
+           let clean = displayOverrides[code] {
+            return clean
+        }
+        return locale.localizedString(forRegionCode: code) ?? name
     }
 
     // MARK: Private

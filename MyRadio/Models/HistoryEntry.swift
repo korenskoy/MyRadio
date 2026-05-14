@@ -30,8 +30,8 @@ struct HistoryGroup: Identifiable {
 
     var dayLabel: String {
         let cal = Calendar.current
-        if cal.isDateInToday(day) { return "Today" }
-        if cal.isDateInYesterday(day) { return "Yesterday" }
+        if cal.isDateInToday(day) { return String(localized: "Today") }
+        if cal.isDateInYesterday(day) { return String(localized: "Yesterday") }
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none

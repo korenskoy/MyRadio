@@ -12,7 +12,7 @@ enum PrefsSection: String, CaseIterable, Identifiable {
     case about, general, appearance, shortcuts, advanced
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringKey {
         switch self {
         case .about:      return "About"
         case .general:    return "General"

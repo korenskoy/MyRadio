@@ -14,14 +14,14 @@ enum TabKind: String, Codable, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .discover:  return "Discover"
-        case .favorites: return "Favorites"
-        case .search:    return "Search"
-        case .topVoted:  return "Top voted"
-        case .popular:   return "Popular"
-        case .countries: return "Countries"
-        case .map:       return "Map"
-        case .history:   return "History"
+        case .discover:  return String(localized: "Discover")
+        case .favorites: return String(localized: "Favorites")
+        case .search:    return String(localized: "Search")
+        case .topVoted:  return String(localized: "Top voted")
+        case .popular:   return String(localized: "Popular")
+        case .countries: return String(localized: "Countries")
+        case .map:       return String(localized: "Map")
+        case .history:   return String(localized: "History")
         }
     }
 
@@ -48,6 +48,7 @@ enum DebugTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// DevTools panel — developer-facing, kept in English on purpose.
     var label: String {
         switch self {
         case .logs:    return "Logs"

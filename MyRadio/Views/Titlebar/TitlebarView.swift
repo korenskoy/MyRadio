@@ -29,11 +29,11 @@ struct TitlebarView: View {
 
                 // Center: title
                 HStack(spacing: 6) {
-                    Text("MyRadio")
+                    Text(verbatim: "MyRadio")
                         .font(Typography.titlebar)
                         .foregroundStyle(colors.fg2)
                     if let name = state.currentStation?.name {
-                        Text("—")
+                        Text(verbatim: "—")
                             .font(Typography.titlebar)
                             .foregroundStyle(colors.fg3)
                         Text(name)
@@ -96,7 +96,7 @@ private struct SettingsButton: View {
                 .foregroundStyle(colors.fg3)
         }
         .buttonStyle(.plain)
-        .help("Preferences (⌘,)")
+        .help(Text("Preferences (⌘,)"))
     }
 }
 

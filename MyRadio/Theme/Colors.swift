@@ -22,7 +22,17 @@ enum AccentName: String, CaseIterable {
     case system, blue, purple, pink, red, orange, yellow, green, graphite
 
     var displayName: String {
-        self == .system ? "System" : rawValue.capitalized
+        switch self {
+        case .system:   return String(localized: "System")
+        case .blue:     return String(localized: "Blue")
+        case .purple:   return String(localized: "Purple")
+        case .pink:     return String(localized: "Pink")
+        case .red:      return String(localized: "Red")
+        case .orange:   return String(localized: "Orange")
+        case .yellow:   return String(localized: "Yellow")
+        case .green:    return String(localized: "Green")
+        case .graphite: return String(localized: "Graphite")
+        }
     }
 }
 

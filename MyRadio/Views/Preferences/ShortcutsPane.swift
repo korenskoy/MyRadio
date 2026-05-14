@@ -12,7 +12,7 @@ import SwiftUI
 struct ShortcutsPane: View {
     private struct ShortcutItem: Identifiable {
         let id: String
-        let name: String
+        let name: LocalizedStringKey
         let keys: [String]
     }
 
@@ -84,8 +84,9 @@ struct ShortcutsPane: View {
             )
     }
 
-    private func groupHeader(_ text: String) -> some View {
-        Text(text.uppercased())
+    private func groupHeader(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .textCase(.uppercase)
             .font(.system(size: 10.5, weight: .semibold))
             .foregroundStyle(.secondary)
             .padding(.top, 4)

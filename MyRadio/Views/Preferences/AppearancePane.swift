@@ -75,8 +75,9 @@ struct AppearancePane: View {
 
     // MARK: Helpers
 
-    private func groupHeader(_ text: String) -> some View {
-        Text(text.uppercased())
+    private func groupHeader(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .textCase(.uppercase)
             .font(.system(size: 10.5, weight: .semibold))
             .foregroundStyle(.secondary)
             .padding(.top, 4)
@@ -166,7 +167,7 @@ private struct ThemeCard: View {
         .buttonStyle(.plain)
     }
 
-    private var label: String {
+    private var label: LocalizedStringKey {
         switch theme {
         case .light: return "Light"
         case .dark:  return "Dark"

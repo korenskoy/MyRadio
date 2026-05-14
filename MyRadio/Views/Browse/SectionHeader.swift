@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct SectionHeader: View {
-    let title: String
-    var subtitle: String? = nil
+    let title: LocalizedStringKey
+    var subtitle: LocalizedStringKey? = nil
     @Environment(\.appColors) private var colors
 
     var body: some View {
@@ -26,7 +26,7 @@ struct SectionHeader: View {
 }
 
 struct ToolbarRow<Content: View>: View {
-    var subtitle: String? = nil
+    var subtitle: LocalizedStringKey? = nil
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -44,7 +44,7 @@ struct ToolbarRow<Content: View>: View {
 }
 
 struct BrowseButton: View {
-    let label: String
+    let label: LocalizedStringKey?
     var icon: String? = nil
     var style: ButtonKind = .normal
     var action: () -> Void = {}
@@ -60,13 +60,13 @@ struct BrowseButton: View {
                     Image(systemName: icon)
                         .font(.system(size: 11))
                 }
-                if !label.isEmpty {
+                if let label {
                     Text(label)
                         .font(.system(size: 12.5, weight: .medium))
                 }
             }
             .foregroundStyle(foregroundColor)
-            .padding(.horizontal, label.isEmpty ? 8 : 12)
+            .padding(.horizontal, label == nil ? 8 : 12)
             .frame(height: 32)
             .background(bgColor)
             .overlay(

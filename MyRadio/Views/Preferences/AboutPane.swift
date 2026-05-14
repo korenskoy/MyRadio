@@ -59,8 +59,8 @@ struct AboutPane: View {
         }
     }
 
-    private func chip(_ text: String) -> some View {
-        Text(text)
+    private func chip(_ key: LocalizedStringKey) -> some View {
+        Text(key)
             .font(.system(size: 11, weight: .medium))
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
@@ -114,14 +114,14 @@ struct AboutPane: View {
 
     private var statusTitle: String {
         if let update = updateChecker.availableUpdate {
-            return "Update available — version \(update.version)"
+            return String(localized: "Update available — version \(update.version)")
         }
-        if updateChecker.lastCheckedAt != nil { return "You're up to date" }
-        return "Not checked yet"
+        if updateChecker.lastCheckedAt != nil { return String(localized: "You're up to date") }
+        return String(localized: "Not checked yet")
     }
 
     private var statusSubtitle: String {
-        if updateChecker.isChecking { return "Checking GitHub for new releases…" }
+        if updateChecker.isChecking { return String(localized: "Checking GitHub for new releases…") }
         let last = UpdateStatusFormatter.lastChecked(at: updateChecker.lastCheckedAt)
         if let next = UpdateStatusFormatter.nextCheck(
             after: updateChecker.lastCheckedAt,
@@ -192,7 +192,7 @@ struct AboutPane: View {
         }
     }
 
-    private func resourceRow(icon: String, title: String, url: URL) -> some View {
+    private func resourceRow(icon: String, title: LocalizedStringKey, url: URL) -> some View {
         Button {
             openURL(url)
         } label: {
@@ -235,8 +235,9 @@ struct AboutPane: View {
 
     // MARK: Helpers
 
-    private func groupHeader(_ text: String) -> some View {
-        Text(text.uppercased())
+    private func groupHeader(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .textCase(.uppercase)
             .font(.system(size: 10.5, weight: .semibold))
             .foregroundStyle(.secondary)
             .padding(.top, 4)

@@ -57,7 +57,7 @@ struct AdvancedPane: View {
         groupBox {
             row(
                 label: "DevTools window",
-                hint: "Live debug log, network inspector and player state."
+                hint: String(localized: "Live debug log, network inspector and player state.")
             ) {
                 Button("Open DevTools") { openWindow(id: "devtools") }
                     .buttonStyle(.bordered)
@@ -103,7 +103,7 @@ struct AdvancedPane: View {
             VStack(spacing: 0) {
                 row(
                     label: "Copy debug log to clipboard",
-                    hint: "All buffered DebugLog entries — safe to share, no audio captured."
+                    hint: String(localized: "All buffered DebugLog entries — safe to share, no audio captured.")
                 ) {
                     Button("Copy") {
                         let text = state.debugLog.asText()
@@ -128,7 +128,7 @@ struct AdvancedPane: View {
         groupBox {
             row(
                 label: "Reset all preferences",
-                hint: "Restores defaults. Favorites, history and custom stations are kept."
+                hint: String(localized: "Restores defaults. Favorites, history and custom stations are kept.")
             ) {
                 Button(role: .destructive) {
                     showResetConfirm = true
@@ -154,13 +154,13 @@ struct AdvancedPane: View {
         panel.canChooseDirectories = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
         guard let text = try? String(contentsOf: url, encoding: .utf8) else {
-            importStatus = "Could not read file"
+            importStatus = String(localized: "Could not read file")
             return
         }
-        importStatus = "Importing…"
+        importStatus = String(localized: "Importing…")
         Task {
             await state.importM3U(text)
-            await MainActor.run { importStatus = "Imported \(url.lastPathComponent)" }
+            await MainActor.run { importStatus = String(localized: "Imported \(url.lastPathComponent)") }
         }
     }
 
@@ -176,8 +176,9 @@ struct AdvancedPane: View {
 
     // MARK: Layout helpers
 
-    private func groupHeader(_ text: String) -> some View {
-        Text(text.uppercased())
+    private func groupHeader(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .textCase(.uppercase)
             .font(.system(size: 10.5, weight: .semibold))
             .foregroundStyle(.secondary)
             .padding(.top, 4)
@@ -198,7 +199,7 @@ struct AdvancedPane: View {
 
     @ViewBuilder
     private func row<Trailing: View>(
-        label: String,
+        label: LocalizedStringKey,
         hint: String? = nil,
         monoValue: String? = nil,
         @ViewBuilder trailing: () -> Trailing
