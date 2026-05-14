@@ -13,6 +13,7 @@ struct MyRadioApp: App {
                 .environment(state)
                 .environmentObject(state.updateChecker)
                 .ignoresSafeArea()
+                .onAppear { appDelegate.state = state }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: AppLayout.windowWidth, height: AppLayout.windowHeight)
@@ -79,6 +80,9 @@ private struct AppShortcuts: Commands {
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private weak var mainWindow: NSWindow?
+    /// Set from the WindowGroup's onAppear so we can consult `confirmQuit`
+    /// and the current playback state when the app is about to terminate.
+    weak var state: AppState?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
@@ -91,6 +95,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             self.alignTrafficLights(in: window)
         }
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let state, state.confirmQuit, state.isPlaying else { return .terminateNow }
+        let alert = NSAlert()
+        alert.messageText = "Quit MyRadio?"
+        alert.informativeText = "Audio is currently playing. Quitting will stop the stream."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
     }
 
     func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {

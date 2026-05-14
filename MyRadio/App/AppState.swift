@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import RadioBrowserKit
+import ServiceManagement
 
 @Observable
 final class AppState {
@@ -85,12 +86,40 @@ final class AppState {
     }
     private(set) var systemColorEpoch: Int = 0
 
+    // MARK: - General
+    var language: AppLanguage = .system {
+        didSet {
+            persistPreferences()
+            applyLanguageOverride()
+        }
+    }
+    var launchAtLogin: Bool = false {
+        didSet {
+            persistPreferences()
+            applyLaunchAtLogin()
+        }
+    }
+    var restoreLastStation: Bool = true {
+        didSet { persistPreferences() }
+    }
+    var confirmQuit: Bool = true {
+        didSet { persistPreferences() }
+    }
+    /// UUID of the last station played — restored on next launch if
+    /// `restoreLastStation` is on. Persisted via `play(...)`.
+    private var lastStationUUID: String?
+
     private func persistPreferences() {
         let snapshot = Preferences(
             volume: Float(volume),
             activeTab: activeTab,
             theme: theme,
-            accent: accent
+            accent: accent,
+            language: language,
+            launchAtLogin: launchAtLogin,
+            restoreLastStation: restoreLastStation,
+            confirmQuit: confirmQuit,
+            lastStationUUID: lastStationUUID
         )
         Task { await persistence.savePreferences(snapshot) }
     }
@@ -102,7 +131,37 @@ final class AppState {
         accent = .system
         streamPlayer.volume = 0.7
         activeTab = .discover
+        language = .system
+        launchAtLogin = false
+        restoreLastStation = true
+        confirmQuit = true
         Task { await persistence.resetPreferences() }
+    }
+
+    // MARK: - General side-effects
+
+    /// Writes/clears the `AppleLanguages` override in standard UserDefaults.
+    /// macOS picks up the change on the next process launch.
+    private func applyLanguageOverride() {
+        let key = "AppleLanguages"
+        if let codes = language.appleLanguagesCodes {
+            UserDefaults.standard.set(codes, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
+    private func applyLaunchAtLogin() {
+        let service = SMAppService.mainApp
+        do {
+            if launchAtLogin {
+                if service.status != .enabled { try service.register() }
+            } else {
+                if service.status == .enabled { try service.unregister() }
+            }
+        } catch {
+            debugLog.append(.warn, "Launch-at-login toggle failed: \(error.localizedDescription)", source: "app.general")
+        }
     }
 
     // MARK: - History tracking
@@ -160,8 +219,13 @@ final class AppState {
             if let prefs = await self.persistence.loadPreferences() {
                 self.streamPlayer.volume = prefs.volume
                 self.activeTab = prefs.activeTab
-                if let theme  = prefs.theme  { self.theme  = theme }
-                if let accent = prefs.accent { self.accent = accent }
+                if let theme    = prefs.theme    { self.theme    = theme }
+                if let accent   = prefs.accent   { self.accent   = accent }
+                if let language = prefs.language { self.language = language }
+                if let launch   = prefs.launchAtLogin      { self.launchAtLogin      = launch }
+                if let restore  = prefs.restoreLastStation { self.restoreLastStation = restore }
+                if let confirm  = prefs.confirmQuit        { self.confirmQuit        = confirm }
+                self.lastStationUUID = prefs.lastStationUUID
             }
             self.favorites = await self.persistence.loadFavorites()
             self.favoriteStationData = await self.persistence.loadFavoriteStations()
@@ -171,6 +235,13 @@ final class AppState {
             self.debugLog.append(.info, "Loaded \(self.favorites.count) favorites, \(self.history.count) history entries, \(self.customStations.count) custom stations", source: "app.boot")
 
             await self.loadTabData(for: .discover)
+
+            if self.restoreLastStation,
+               let uuid = self.lastStationUUID,
+               let station = self.station(for: uuid) {
+                self.debugLog.append(.info, "Restoring last station: \(station.name)", source: "app.boot")
+                self.currentStation = station
+            }
         }
     }
 
@@ -181,6 +252,8 @@ final class AppState {
 
         currentStation = station
         playStartTime = Date()
+        lastStationUUID = station.stationuuid
+        persistPreferences()
 
         guard let url = URL(string: station.urlResolved ?? station.url) else {
             debugLog.append(.error, "Invalid stream URL for \(station.name)", source: "audio.player")

@@ -120,7 +120,7 @@ private struct PreferencesContent: View {
             Group {
                 switch section {
                 case .about:      AboutPane()
-                case .general:    PlaceholderPane(title: "General")
+                case .general:    GeneralPane()
                 case .appearance: AppearancePane()
                 case .shortcuts:  ShortcutsPane()
                 case .advanced:   AdvancedPane()

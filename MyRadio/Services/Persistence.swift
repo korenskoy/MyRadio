@@ -138,6 +138,11 @@ struct Preferences: Codable {
     var activeTab: TabKind
     var theme: AppTheme?
     var accent: AccentName?
+    var language: AppLanguage?
+    var launchAtLogin: Bool?
+    var restoreLastStation: Bool?
+    var confirmQuit: Bool?
+    var lastStationUUID: String?
 }
 
 extension AppTheme: Codable {}
