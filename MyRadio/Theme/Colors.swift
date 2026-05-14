@@ -18,8 +18,12 @@ enum AppTheme: String, CaseIterable {
     case auto, light, dark
 }
 
-enum AccentName: String {
-    case system
+enum AccentName: String, CaseIterable {
+    case system, blue, purple, pink, red, orange, yellow, green, graphite
+
+    var displayName: String {
+        self == .system ? "System" : rawValue.capitalized
+    }
 }
 
 struct AccentPreset {
@@ -31,32 +35,51 @@ struct AccentPreset {
 }
 
 extension AccentName {
-    var preset: AccentPreset { Self.systemPreset() }
+    /// macOS Accent Color picker values (NSColor.system*).
+    var preset: AccentPreset {
+        switch self {
+        case .system:   return Self.systemPreset()
+        case .blue:     return .fromHex(0x007AFF)
+        case .purple:   return .fromHex(0xAF52DE)
+        case .pink:     return .fromHex(0xFF2D55)
+        case .red:      return .fromHex(0xFF3B30)
+        case .orange:   return .fromHex(0xFF9500)
+        case .yellow:   return .fromHex(0xFFCC00)
+        case .green:    return .fromHex(0x34C759)
+        case .graphite: return .fromHex(0x8E8E93)
+        }
+    }
 
     static func systemPreset() -> AccentPreset {
         guard let ns = NSColor.controlAccentColor.usingColorSpace(.sRGB) else {
-            // Fallback: macOS blue
-            return AccentPreset(
-                accent:   Color(.sRGB, red: 0.36, green: 0.61, blue: 0.80),
-                strong:   Color(.sRGB, red: 0.23, green: 0.48, blue: 0.69),
-                soft:     Color(.sRGB, red: 0.91, green: 0.95, blue: 0.98),
-                softDark: Color(.sRGB, red: 0.07, green: 0.13, blue: 0.20),
-                fg:       Color(.sRGB, red: 0.02, green: 0.06, blue: 0.11)
-            )
+            return .fromHex(0x007AFF)  // macOS Blue fallback
         }
-        let r = ns.redComponent
-        let g = ns.greenComponent
-        let b = ns.blueComponent
+        return .fromRGB(ns.redComponent, ns.greenComponent, ns.blueComponent)
+    }
+}
 
+extension AccentPreset {
+    /// Build a 5-component preset from a base RGB triple.
+    /// strong = darken 0.18, soft = pastel light, softDark = deep tint,
+    /// fg = b/w by luminance.
+    /// Threshold 0.7 matches Apple's behavior for system accent buttons:
+    /// yellow keeps black text, everything else (purple/red/orange/graphite/etc) gets white.
+    static func fromRGB(_ r: Double, _ g: Double, _ b: Double) -> AccentPreset {
         let accent   = Color(.sRGB, red: r, green: g, blue: b)
-        let strong   = Color(.sRGB, red: max(0, r-0.18), green: max(0, g-0.18), blue: max(0, b-0.18))
-        let soft     = Color(.sRGB, red: min(1, r*0.12+0.88), green: min(1, g*0.12+0.88), blue: min(1, b*0.12+0.88))
-        let softDark = Color(.sRGB, red: r*0.25, green: g*0.25, blue: b*0.25)
-        let lum      = 0.299*r + 0.587*g + 0.114*b
-        let fgV: Double = lum > 0.45 ? 0.08 : 0.95
+        let strong   = Color(.sRGB, red: max(0, r - 0.18), green: max(0, g - 0.18), blue: max(0, b - 0.18))
+        let soft     = Color(.sRGB, red: min(1, r * 0.12 + 0.88), green: min(1, g * 0.12 + 0.88), blue: min(1, b * 0.12 + 0.88))
+        let softDark = Color(.sRGB, red: r * 0.25, green: g * 0.25, blue: b * 0.25)
+        let lum      = 0.299 * r + 0.587 * g + 0.114 * b
+        let fgV: Double = lum > 0.70 ? 0.08 : 0.95
         let fg = Color(.sRGB, red: fgV, green: fgV, blue: fgV)
-
         return AccentPreset(accent: accent, strong: strong, soft: soft, softDark: softDark, fg: fg)
+    }
+
+    static func fromHex(_ hex: UInt32) -> AccentPreset {
+        let r = Double((hex >> 16) & 0xFF) / 255
+        let g = Double((hex >> 8)  & 0xFF) / 255
+        let b = Double(hex         & 0xFF) / 255
+        return fromRGB(r, g, b)
     }
 }
 

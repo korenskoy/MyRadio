@@ -129,7 +129,12 @@ actor Persistence {
 struct Preferences: Codable {
     var volume: Float
     var activeTab: TabKind
+    var theme: AppTheme?
+    var accent: AccentName?
 }
+
+extension AppTheme: Codable {}
+extension AccentName: Codable {}
 
 // MARK: - Coders
 

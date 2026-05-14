@@ -20,7 +20,7 @@ final class AppState {
         get { Double(streamPlayer.volume) }
         set {
             streamPlayer.volume = Float(newValue)
-            Task { await persistence.savePreferences(Preferences(volume: Float(newValue), activeTab: activeTab)) }
+            persistPreferences()
         }
     }
     var nowPlayingTitle: String? { streamPlayer.nowPlayingTitle }
@@ -28,7 +28,7 @@ final class AppState {
 
     // MARK: - Navigation
     var activeTab: TabKind = .discover {
-        didSet { Task { await persistence.savePreferences(Preferences(volume: Float(volume), activeTab: activeTab)) } }
+        didSet { persistPreferences() }
     }
     var searchQuery: String = ""
     var showAddStation = false
@@ -66,9 +66,23 @@ final class AppState {
     var isMiniMode: Bool = false
 
     // MARK: - Appearance
-    var theme: AppTheme = .auto
-    var accent: AccentName = .system
+    var theme: AppTheme = .auto {
+        didSet { persistPreferences() }
+    }
+    var accent: AccentName = .system {
+        didSet { persistPreferences() }
+    }
     private(set) var systemColorEpoch: Int = 0
+
+    private func persistPreferences() {
+        let snapshot = Preferences(
+            volume: Float(volume),
+            activeTab: activeTab,
+            theme: theme,
+            accent: accent
+        )
+        Task { await persistence.savePreferences(snapshot) }
+    }
 
     // MARK: - History tracking
     private var playStartTime: Date?
@@ -125,6 +139,8 @@ final class AppState {
             if let prefs = await self.persistence.loadPreferences() {
                 self.streamPlayer.volume = prefs.volume
                 self.activeTab = prefs.activeTab
+                if let theme  = prefs.theme  { self.theme  = theme }
+                if let accent = prefs.accent { self.accent = accent }
             }
             self.favorites = await self.persistence.loadFavorites()
             self.favoriteStationData = await self.persistence.loadFavoriteStations()

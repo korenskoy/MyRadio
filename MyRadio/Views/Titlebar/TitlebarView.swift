@@ -46,7 +46,6 @@ struct TitlebarView: View {
 
                 // Right controls
                 HStack(spacing: 8) {
-                    ThemeCycleButton()
                     DebugToggleButton()
                     SettingsButton()
                 }
@@ -59,30 +58,6 @@ struct TitlebarView: View {
                 .fill(colors.border)
                 .frame(height: 0.5)
         }
-    }
-}
-
-// MARK: - Theme cycle button (AUTO / LIGHT / DARK)
-
-private struct ThemeCycleButton: View {
-    @Environment(AppState.self) private var state
-    @Environment(\.appColors) private var colors
-
-    var body: some View {
-        Button {
-            state.theme = state.theme.next
-        } label: {
-            Text(state.theme.shortLabel)
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .foregroundStyle(colors.fg2)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(
-                    RoundedRectangle(cornerRadius: AppLayout.rSm)
-                        .fill(colors.bgPill)
-                )
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -138,22 +113,3 @@ private struct TitlebarDragArea: NSViewRepresentable {
     }
 }
 
-// MARK: - Helpers
-
-private extension AppTheme {
-    var next: AppTheme {
-        switch self {
-        case .auto:  return .light
-        case .light: return .dark
-        case .dark:  return .auto
-        }
-    }
-
-    var shortLabel: String {
-        switch self {
-        case .auto:  return "AUTO"
-        case .light: return "LIGHT"
-        case .dark:  return "DARK"
-        }
-    }
-}
