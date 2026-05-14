@@ -8,6 +8,7 @@ final class AppState {
     let debugLog = DebugLog()
     let streamPlayer = StreamPlayer()
     let sleepTimer = SleepTimerService()
+    let updateChecker = UpdateChecker()
     private let persistence = Persistence()
     private var cache: StationCache?
     private var nowPlayingController: NowPlayingController?
@@ -114,6 +115,8 @@ final class AppState {
             self?.systemColorEpoch += 1
         }
         debugLog.append(.info, "Application started · MyRadio v1.0.0", source: "app.boot")
+
+        updateChecker.start()
 
         Task { @MainActor [weak self] in
             guard let self else { return }

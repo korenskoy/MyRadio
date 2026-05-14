@@ -1,3 +1,6 @@
+# Cursor MCP (contains Lazyweb bearer token; do not commit)
+.cursor/mcp.json
+
 ### macOS
 # Finder metadata
 .DS_Store

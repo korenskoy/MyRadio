@@ -10,12 +10,28 @@
 		931D33D72FAC712E00D83AC0 /* RadioBrowserKit in Frameworks */ = {isa = PBXBuildFile; productRef = 931D33D62FAC712E00D83AC0 /* RadioBrowserKit */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		9345DDE62FB5896200BC8DCC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 93F7D5D52FAC70AB00A9122C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 93F7D5DC2FAC70AB00A9122C;
+			remoteInfo = MyRadio;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		9345DDE22FB5896200BC8DCC /* MyRadioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyRadioTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		93F7D5DD2FAC70AB00A9122C /* MyRadio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyRadio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		93F7D5EB2FAC70AC00A9122C /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		9345DDE32FB5896200BC8DCC /* MyRadioTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MyRadioTests;
+			sourceTree = "<group>";
+		};
 		93F7D5DF2FAC70AB00A9122C /* MyRadio */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MyRadio;
@@ -24,6 +40,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		9345DDDF2FB5896200BC8DCC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		93F7D5DA2FAC70AB00A9122C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -40,6 +63,7 @@
 			children = (
 				93F7D5EC2FAC70AC00A9122C /* Configuration */,
 				93F7D5DF2FAC70AB00A9122C /* MyRadio */,
+				9345DDE32FB5896200BC8DCC /* MyRadioTests */,
 				93F7D5DE2FAC70AB00A9122C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -48,6 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				93F7D5DD2FAC70AB00A9122C /* MyRadio.app */,
+				9345DDE22FB5896200BC8DCC /* MyRadioTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -57,13 +82,35 @@
 			children = (
 				93F7D5EB2FAC70AC00A9122C /* Version.xcconfig */,
 			);
-			name = Configuration;
 			path = Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		9345DDE12FB5896200BC8DCC /* MyRadioTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9345DDEA2FB5896200BC8DCC /* Build configuration list for PBXNativeTarget "MyRadioTests" */;
+			buildPhases = (
+				9345DDDE2FB5896200BC8DCC /* Sources */,
+				9345DDDF2FB5896200BC8DCC /* Frameworks */,
+				9345DDE02FB5896200BC8DCC /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9345DDE72FB5896200BC8DCC /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9345DDE32FB5896200BC8DCC /* MyRadioTests */,
+			);
+			name = MyRadioTests;
+			packageProductDependencies = (
+			);
+			productName = MyRadioTests;
+			productReference = 9345DDE22FB5896200BC8DCC /* MyRadioTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		93F7D5DC2FAC70AB00A9122C /* MyRadio */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 93F7D5E82FAC70AC00A9122C /* Build configuration list for PBXNativeTarget "MyRadio" */;
@@ -94,9 +141,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2640;
+				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
+					9345DDE12FB5896200BC8DCC = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 93F7D5DC2FAC70AB00A9122C;
+					};
 					93F7D5DC2FAC70AB00A9122C = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
@@ -120,11 +171,19 @@
 			projectRoot = "";
 			targets = (
 				93F7D5DC2FAC70AB00A9122C /* MyRadio */,
+				9345DDE12FB5896200BC8DCC /* MyRadioTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		9345DDE02FB5896200BC8DCC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		93F7D5DB2FAC70AB00A9122C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -135,6 +194,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		9345DDDE2FB5896200BC8DCC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		93F7D5D92FAC70AB00A9122C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -144,7 +210,55 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		9345DDE72FB5896200BC8DCC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 93F7D5DC2FAC70AB00A9122C /* MyRadio */;
+			targetProxy = 9345DDE62FB5896200BC8DCC /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		9345DDE82FB5896200BC8DCC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UZEE5BVAH9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ru.korenskoy.MyRadioTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MyRadio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MyRadio";
+			};
+			name = Debug;
+		};
+		9345DDE92FB5896200BC8DCC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UZEE5BVAH9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ru.korenskoy.MyRadioTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MyRadio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MyRadio";
+			};
+			name = Release;
+		};
 		93F7D5E62FAC70AC00A9122C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -334,6 +448,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		9345DDEA2FB5896200BC8DCC /* Build configuration list for PBXNativeTarget "MyRadioTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9345DDE82FB5896200BC8DCC /* Debug */,
+				9345DDE92FB5896200BC8DCC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		93F7D5D82FAC70AB00A9122C /* Build configuration list for PBXProject "MyRadio" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -48,6 +48,7 @@ struct TitlebarView: View {
                 HStack(spacing: 8) {
                     ThemeCycleButton()
                     DebugToggleButton()
+                    SettingsButton()
                 }
                 .padding(.trailing, 14)
             }
@@ -105,6 +106,22 @@ private struct DebugToggleButton: View {
                 .foregroundStyle(state.logsVisible ? colors.accent.strong : colors.fg3)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Settings button (gear icon)
+
+private struct SettingsButton: View {
+    @Environment(\.appColors) private var colors
+
+    var body: some View {
+        SettingsLink {
+            Image(systemName: "gearshape")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(colors.fg3)
+        }
+        .buttonStyle(.plain)
+        .help("Preferences (⌘,)")
     }
 }
 

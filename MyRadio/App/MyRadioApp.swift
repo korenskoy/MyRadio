@@ -11,6 +11,7 @@ struct MyRadioApp: App {
         WindowGroup(id: "main") {
             RootView()
                 .environment(state)
+                .environmentObject(state.updateChecker)
                 .ignoresSafeArea()
         }
         .windowStyle(.hiddenTitleBar)
@@ -23,6 +24,12 @@ struct MyRadioApp: App {
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 900, height: 480)
+
+        Settings {
+            PreferencesWindow()
+                .environment(state)
+                .environmentObject(state.updateChecker)
+        }
     }
 }
 
