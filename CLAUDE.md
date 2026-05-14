@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MyRadio — это macOS-приложение (SwiftUI), созданное в Xcode 26.4.1. Цель — клиент для интернет-радио на основе каталога [radio-browser.info](https://www.radio-browser.info/), доступ к которому идёт через Swift package `RadioBrowserKit`.
 
-На момент инициализации репозитория стартовые файлы (`MyRadio/MyRadioApp.swift`, `MyRadio/ContentView.swift`) удалены — папка `MyRadio/` содержит только `Assets.xcassets`. То есть основной код приложения ещё предстоит написать. Это нормальное состояние — не пытайтесь «восстановить» эти файлы из истории, дождитесь явного указания пользователя.
-
 ## Build / run / test
 
 Только один target — `MyRadio` (macOS app). Схема лежит в `xcuserdata`, в общий доступ не выложена.
@@ -62,6 +60,6 @@ xcodebuild -resolvePackageDependencies -project MyRadio.xcodeproj
 
 ## Конвенции
 
-- App entrypoint — `@main struct MyRadioApp: App` в `MyRadio/MyRadioApp.swift` (когда будет восстановлен/пересоздан).
+- App entrypoint — `@main struct MyRadioApp: App` в `MyRadio/App/MyRadioApp.swift`.
 - Главное окно — SwiftUI `WindowGroup`. Для воспроизведения аудио на macOS вероятно понадобится `AVFoundation` / `AVPlayer` поверх станций из `RadioBrowserKit`.
 - Ассеты (icons, accent color) — только через `Assets.xcassets`.
