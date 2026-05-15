@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MyRadio — Internet radio for macOS</title>
+<meta name="description" content="A native macOS internet radio client. 40,000+ stations from radio-browser.info, mini-player, sleep timer, Now Playing — built for Tahoe.">
+
+<meta property="og:title" content="MyRadio — Internet radio for macOS">
+<meta property="og:description" content="A native macOS internet radio client powered by radio-browser.info. 40,000+ stations, mini-player, sleep timer, Now Playing.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/screenshot.webp">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="nav" aria-label="Primary">
+  <a class="nav-brand" href="#top" aria-label="MyRadio">
+    <img src="assets/icon.png" srcset="assets/icon.png 1x, assets/icon@2x.png 2x" width="28" height="28" alt="">
+    <span>MyRadio</span>
+  </a>
+  <nav class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#install">Install</a>
+    <a href="https://github.com/korenskoy/MyRadio" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+
+  <section class="hero">
+    <img class="hero-icon" src="assets/icon@2x.png" width="160" height="160" alt="MyRadio app icon">
+    <h1>MyRadio</h1>
+    <p class="hero-tagline">Internet radio,<br>right where it belongs.</p>
+    <p class="hero-sub">A native macOS client for <a href="https://www.radio-browser.info/" rel="noopener">radio-browser.info</a> — 40,000+ stations, mini-player, sleep timer, Now Playing.</p>
+
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/korenskoy/MyRadio/releases/latest" rel="noopener">
+        <span class="btn-icon" aria-hidden="true">↓</span>
+        Download for macOS
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/korenskoy/MyRadio" rel="noopener">
+        View on GitHub
+      </a>
+    </div>
+    <p class="hero-meta">Free &middot; Open source &middot; macOS 26.4 Tahoe or later</p>
+
+    <figure class="shot">
+      <img src="assets/screenshot.webp" alt="MyRadio main window showing the Discover tab with a station playing" width="1400" height="900" loading="eager" decoding="async">
+    </figure>
+  </section>
+
+  <section id="features" class="features">
+    <header class="section-head">
+      <h2>Everything you need to listen.</h2>
+      <p>Built around the radio-browser.info community catalog — with the polish of a native Mac app.</p>
+    </header>
+
+    <div class="grid">
+      <article class="card">
+        <div class="card-glyph">📡</div>
+        <h3>40,000+ stations</h3>
+        <p>The full radio-browser.info catalog at your fingertips, refreshed live.</p>
+      </article>
+      <article class="card">
+        <div class="card-glyph">🔎</div>
+        <h3>Discover &amp; search</h3>
+        <p>Top Voted, Most Popular, Countries, Map, and full-text search across the catalog.</p>
+      </article>
+      <article class="card">
+        <div class="card-glyph">★</div>
+        <h3>Favorites &amp; history</h3>
+        <p>Pin the stations you love. Revisit anything you've played.</p>
+      </article>
+      <article class="card">
+        <div class="card-glyph">＋</div>
+        <h3>Custom streams</h3>
+        <p>Add any stream URL by hand or import an M3U / PLS playlist.</p>
+      </article>
+      <article class="card">
+        <div class="card-glyph">◐</div>
+        <h3>Mini-player</h3>
+        <p>A compact window that gets out of the way. Floats above everything when you want.</p>
+      </article>
+      <article class="card">
+        <div class="card-glyph">⏻</div>
+        <h3>Sleep timer</h3>
+        <p>Drift off to a station — MyRadio fades out and posts a system notification.</p>
+      </article>
+      <article class="card">
+        <div class="card-glyph">⌘</div>
+        <h3>Now Playing</h3>
+        <p>Media keys and Control Center integration, just like Music.app.</p>
+      </article>
+      <article class="card">
+        <div class="card-glyph">◑</div>
+        <h3>Light, Dark, Auto</h3>
+        <p>Follows your system theme and accent color. 9 UI languages, including RTL Persian.</p>
+      </article>
+      <article class="card">
+        <div class="card-glyph">↻</div>
+        <h3>Self-updating</h3>
+        <p>Built-in update check via the GitHub Releases feed. No telemetry, no auto-updater service.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="install" class="install">
+    <header class="section-head">
+      <h2>Install in 30 seconds.</h2>
+      <p>MyRadio is unsigned and unnotarized — locally built or downloaded, you may need to clear the quarantine flag once.</p>
+    </header>
+
+    <ol class="steps">
+      <li>
+        <span class="step-num">1</span>
+        <div>
+          <h3>Download the DMG</h3>
+          <p>Grab the latest <code>MyRadio-X.Y.dmg</code> from the <a href="https://github.com/korenskoy/MyRadio/releases/latest" rel="noopener">Releases page</a>.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <div>
+          <h3>Drag to Applications</h3>
+          <p>Open the DMG, drag <code>MyRadio.app</code> into <code>/Applications</code>, and eject.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <div>
+          <h3>Allow the first launch</h3>
+          <p>If Gatekeeper blocks it, open <strong>System Settings → Privacy &amp; Security</strong> and click <em>Open Anyway</em>. Or run once in Terminal:</p>
+          <pre><code>sudo xattr -cr /Applications/MyRadio.app</code></pre>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="cta-bottom">
+    <h2>Ready to tune in?</h2>
+    <a class="btn btn-primary btn-lg" href="https://github.com/korenskoy/MyRadio/releases/latest" rel="noopener">
+      <span class="btn-icon" aria-hidden="true">↓</span>
+      Download MyRadio
+    </a>
+    <p class="hero-meta">macOS 26.4 Tahoe or later &middot; Apple silicon &amp; Intel</p>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p>
+    <a href="https://github.com/korenskoy/MyRadio" rel="noopener">Source</a> &middot;
+    <a href="https://github.com/korenskoy/MyRadio/blob/main/LICENSE" rel="noopener">MIT License</a> &middot;
+    <a href="https://github.com/korenskoy/MyRadio/issues" rel="noopener">Issues</a>
+  </p>
+  <p class="muted">
+    Powered by the <a href="https://www.radio-browser.info/" rel="noopener">radio-browser.info</a> community API.<br>
+    MyRadio is not affiliated with any broadcaster. © 2026 Anton Korenskoy.
+  </p>
+</footer>
+
+</body>
+</html>
