@@ -101,10 +101,13 @@ private struct CoverArtView: View {
                 artworkImage = nil
                 return
             }
-            artworkImage = await ArtworkCache.shared.image(
+            let img = await ArtworkCache.shared.image(
                 for: station.stationuuid,
                 faviconURL: station.favicon
             )
+            // Station may have changed while the favicon loaded.
+            guard !Task.isCancelled else { return }
+            artworkImage = img
         }
     }
 }
@@ -260,7 +263,6 @@ private struct NowPlayingView: View {
 
     @State private var trackArtwork: NSImage?
     @State private var tracks: [iTunesTrack] = []
-    @State private var lastTitle: String?
     @State private var showSheet = false
     @State private var hovered = false
 
@@ -325,13 +327,8 @@ private struct NowPlayingView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppLayout.rMd))
         .padding(.top, 18)
         .contentShape(Rectangle())
-        .onHover { h in
-            hovered = h
-            if isClickable {
-                if h { NSCursor.pointingHand.push() }
-                else { NSCursor.pop() }
-            }
-        }
+        .onHover { hovered = $0 }
+        .pointingHandCursor(active: isClickable)
         .onTapGesture { if isClickable { showSheet = true } }
         .sheet(isPresented: $showSheet) {
             TrackInfoSheet(
@@ -342,24 +339,24 @@ private struct NowPlayingView: View {
             .environment(\.appColors, colors)
             .environment(\.layoutDirection, MyRadioApp.preferredLayoutDirection)
         }
-        .onChange(of: state.nowPlayingTitle) { _, newTitle in
-            guard newTitle != lastTitle else { return }
-            lastTitle = newTitle
+        // .task(id:) cancels the previous fetch when the title changes, so a
+        // slow lookup for an old track can't overwrite the new track's artwork.
+        .task(id: state.nowPlayingTitle) {
             trackArtwork = nil
             tracks = []
             state.currentTrackArtwork = nil
             guard let p = parsed else { return }
-            Task {
-                let fetched = await iTunesArtworkService.shared.tracks(
-                    artist: p.artist, title: p.title
-                )
-                tracks = fetched
-                let img = await iTunesArtworkService.shared.artwork(
-                    artist: p.artist, title: p.title
-                )
-                trackArtwork = img
-                state.currentTrackArtwork = img
-            }
+            let fetched = await iTunesArtworkService.shared.tracks(
+                artist: p.artist, title: p.title
+            )
+            guard !Task.isCancelled else { return }
+            tracks = fetched
+            let img = await iTunesArtworkService.shared.artwork(
+                artist: p.artist, title: p.title
+            )
+            guard !Task.isCancelled else { return }
+            trackArtwork = img
+            state.currentTrackArtwork = img
         }
     }
 }

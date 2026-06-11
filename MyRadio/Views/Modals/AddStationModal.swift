@@ -188,12 +188,17 @@ struct AddStationModal: View {
         cancelTest()
 
         let bitrate = Int(bitrateText)
+        // Trim BEFORE the empty check, otherwise a whitespace-only field is saved
+        // as "" instead of nil.
+        let trimmedCountry  = country.trimmingCharacters(in: .whitespaces)
+        let trimmedLanguage = language.trimmingCharacters(in: .whitespaces)
+        let trimmedTags     = tags.trimmingCharacters(in: .whitespaces)
         state.addCustomStation(
             name: name.trimmingCharacters(in: .whitespaces),
             url: streamURL.trimmingCharacters(in: .whitespaces),
-            country: country.isEmpty ? nil : country.trimmingCharacters(in: .whitespaces),
-            language: language.isEmpty ? nil : language.trimmingCharacters(in: .whitespaces),
-            tags: tags.isEmpty ? nil : tags.trimmingCharacters(in: .whitespaces),
+            country: trimmedCountry.isEmpty ? nil : trimmedCountry,
+            language: trimmedLanguage.isEmpty ? nil : trimmedLanguage,
+            tags: trimmedTags.isEmpty ? nil : trimmedTags,
             bitrate: bitrate
         )
         state.showAddStation = false
@@ -248,7 +253,9 @@ private enum StreamTester {
                 player.pause()
                 return TestResult(isSuccess: false, message: String(localized: "Cancelled"))
             }
-            if player.rate > 0 {
+            // `rate > 0` is true the moment we call play(), even while buffering —
+            // only `.playing` means audio is actually flowing.
+            if player.timeControlStatus == .playing {
                 player.pause()
                 return TestResult(isSuccess: true, message: String(localized: "Stream OK"))
             }

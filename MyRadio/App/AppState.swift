@@ -29,7 +29,10 @@ final class AppState {
 
     // MARK: - Navigation
     var activeTab: TabKind = .discover {
-        didSet { persistPreferences() }
+        didSet {
+            guard !isHydrating else { return }
+            persistPreferences()
+        }
     }
     var searchQuery: String = ""
     var showAddStation = false
@@ -54,6 +57,8 @@ final class AppState {
     var countryStations: [Station] = []
     var mapStations: [Station] = []
     var apiCountries: [NamedCount] = []
+    /// Real Radio Browser mirror servers — loaded on demand for the DevTools Servers tab.
+    var servers: [StreamingServerMirror] = []
 
     // MARK: - Loading states
     var isLoadingTab = false
@@ -72,6 +77,7 @@ final class AppState {
     // MARK: - Appearance
     var theme: AppTheme = .auto {
         didSet {
+            guard !isHydrating else { return }
             persistPreferences()
             // Mirror to UserDefaults so the Settings scene (separate SwiftUI tree)
             // gets a cross-scene invalidation via @AppStorage.
@@ -80,6 +86,7 @@ final class AppState {
     }
     var accent: AccentName = .system {
         didSet {
+            guard !isHydrating else { return }
             persistPreferences()
             UserDefaults.standard.set(accent.rawValue, forKey: "appAccent")
         }
@@ -89,28 +96,56 @@ final class AppState {
     // MARK: - General
     var language: AppLanguage = .system {
         didSet {
+            guard !isHydrating else { return }
             persistPreferences()
             applyLanguageOverride()
         }
     }
     var launchAtLogin: Bool = false {
         didSet {
+            guard !isHydrating else { return }
             persistPreferences()
             applyLaunchAtLogin()
         }
     }
     var restoreLastStation: Bool = true {
-        didSet { persistPreferences() }
+        didSet {
+            guard !isHydrating else { return }
+            persistPreferences()
+        }
     }
     var confirmQuit: Bool = true {
-        didSet { persistPreferences() }
+        didSet {
+            guard !isHydrating else { return }
+            persistPreferences()
+        }
     }
     /// UUID of the last station played — restored on next launch if
     /// `restoreLastStation` is on. Persisted via `play(...)`.
     private var lastStationUUID: String?
 
-    private func persistPreferences() {
-        let snapshot = Preferences(
+    // MARK: - Persistence guards
+    /// True only while the init task is copying loaded values into properties.
+    /// Suppresses the `didSet` persistence side-effects so launch doesn't write
+    /// partial/redundant snapshots (and doesn't re-apply language/login overrides).
+    private var isHydrating = false
+    /// True once every collection has been loaded from disk. Until then,
+    /// favorites/history/custom writes are blocked so an early user action can't
+    /// overwrite the on-disk data with an empty in-memory array.
+    private var isHydrated = false
+
+    /// Per-file write generations. Handed to `Persistence.save` so a slower,
+    /// older write can't land after a newer one and resurrect stale state.
+    private var favGen = 0
+    private var historyGen = 0
+    private var customGen = 0
+    private var prefsGen = 0
+    /// Coalesces preference writes (e.g. the volume slider firing dozens of
+    /// times a second) into a single debounced save.
+    private var prefsSaveTask: Task<Void, Never>?
+
+    private func currentPreferencesSnapshot() -> Preferences {
+        Preferences(
             volume: Float(volume),
             activeTab: activeTab,
             theme: theme,
@@ -121,7 +156,68 @@ final class AppState {
             confirmQuit: confirmQuit,
             lastStationUUID: lastStationUUID
         )
-        Task { await persistence.savePreferences(snapshot) }
+    }
+
+    private func persistPreferences() {
+        guard !isHydrating else { return }
+        prefsGen += 1
+        let gen = prefsGen
+        let snapshot = currentPreferencesSnapshot()
+        prefsSaveTask?.cancel()
+        prefsSaveTask = Task { [persistence] in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            if Task.isCancelled { return }
+            await persistence.savePreferences(snapshot, generation: gen)
+        }
+    }
+
+    // MARK: - Persistence helpers (ordered, hydration-guarded)
+
+    private func saveFavoritesToDisk() {
+        guard isHydrated else { return }
+        favGen += 1
+        let gen = favGen
+        let favs = favorites
+        let data = favoriteStationData
+        Task { [persistence] in
+            await persistence.saveFavorites(favs, generation: gen)
+            await persistence.saveFavoriteStations(data, generation: gen)
+        }
+    }
+
+    private func saveHistoryToDisk() {
+        guard isHydrated else { return }
+        historyGen += 1
+        let gen = historyGen
+        let snapshot = history
+        Task { [persistence] in
+            await persistence.saveHistory(snapshot, generation: gen)
+        }
+    }
+
+    private func saveCustomStationsToDisk() {
+        guard isHydrated else { return }
+        customGen += 1
+        let gen = customGen
+        let snapshot = customStations
+        Task { [persistence] in
+            await persistence.saveCustomStations(snapshot, generation: gen)
+        }
+    }
+
+    /// Records the in-flight listening session and flushes history to disk
+    /// SYNCHRONOUSLY. Called from `applicationShouldTerminate` so a long session
+    /// isn't lost on quit (the async writers never get a chance to run).
+    func flushOnTerminate() {
+        recordHistoryForCurrentStation()
+        persistence.saveHistorySync(history)
+        // Also flush preferences synchronously: the debounced async writer won't
+        // run once we return terminateNow, so a last-second volume/tab change
+        // would otherwise be dropped.
+        if !isHydrating {
+            prefsSaveTask?.cancel()
+            persistence.savePreferencesSync(currentPreferencesSnapshot())
+        }
     }
 
     var applicationSupportURL: URL { persistence.directoryURL }
@@ -176,7 +272,12 @@ final class AppState {
     }
 
     // MARK: - History tracking
-    private var playStartTime: Date?
+    /// When the current station started — used as the history entry's `playedAt`.
+    private var sessionStartTime: Date?
+    /// Start of the current *unpaused* segment, or nil while paused.
+    private var segmentStartTime: Date?
+    /// Active (unpaused) listening time banked from completed segments.
+    private var accumulatedPlayTime: TimeInterval = 0
 
     // MARK: - Computed
 
@@ -189,14 +290,24 @@ final class AppState {
             .map { HistoryGroup(day: $0.key, items: $0.value.sorted { $0.playedAt > $1.playedAt }) }
     }
 
+    /// Every station currently held in memory across all tab lists. Concatenated
+    /// once (not per-lookup) by callers that need to resolve a UUID.
+    private var allLoadedStations: [Station] {
+        stations + discoverTopVoted + discoverPopular
+            + topVotedStations + popularStations
+            + searchResults + countryStations + mapStations
+    }
+
     var favoriteStations: [Station] {
-        favorites.reversed().compactMap { uuid in
-            if let station = favoriteStationData[uuid] { return station }
-            let allStations = stations + discoverTopVoted + discoverPopular
-                + topVotedStations + popularStations
-                + searchResults + countryStations + mapStations
-            return allStations.first { $0.stationuuid == uuid }
+        // Resolve through a single lookup table instead of rebuilding (and
+        // re-scanning) the concatenation of all lists for every favorite.
+        var lookup = favoriteStationData
+        if favorites.contains(where: { lookup[$0] == nil }) {
+            for station in allLoadedStations where lookup[station.stationuuid] == nil {
+                lookup[station.stationuuid] = station
+            }
         }
+        return favorites.reversed().compactMap { lookup[$0] }
     }
 
     func isFavorite(_ station: Station) -> Bool {
@@ -219,29 +330,49 @@ final class AppState {
         ) { [weak self] _ in
             self?.systemColorEpoch += 1
         }
-        debugLog.append(.info, "Application started · MyRadio v1.0.0", source: "app.boot")
+        debugLog.append(.info, "Application started · MyRadio v\(AppVersion.displayString)", source: "app.boot")
 
         updateChecker.start()
 
         Task { @MainActor [weak self] in
             guard let self else { return }
+            await self.persistence.setErrorLogger { [weak log = self.debugLog] message in
+                log?.append(.error, message, source: "persistence")
+            }
+
             let api = RadioBrowserAPI(log: self.debugLog)
             self.cache = StationCache(api: api, log: self.debugLog)
-            if let prefs = await self.persistence.loadPreferences() {
-                self.streamPlayer.volume = prefs.volume
-                self.activeTab = prefs.activeTab
-                if let theme    = prefs.theme    { self.theme    = theme }
-                if let accent   = prefs.accent   { self.accent   = accent }
-                if let language = prefs.language { self.language = language }
-                if let launch   = prefs.launchAtLogin      { self.launchAtLogin      = launch }
-                if let restore  = prefs.restoreLastStation { self.restoreLastStation = restore }
-                if let confirm  = prefs.confirmQuit        { self.confirmQuit        = confirm }
-                self.lastStationUUID = prefs.lastStationUUID
+
+            self.isHydrating = true
+            do {
+                if let prefs = try await self.persistence.loadPreferences() {
+                    self.streamPlayer.volume = prefs.volume
+                    self.activeTab = prefs.activeTab
+                    if let theme    = prefs.theme    { self.theme    = theme }
+                    if let accent   = prefs.accent   { self.accent   = accent }
+                    if let language = prefs.language { self.language = language }
+                    if let launch   = prefs.launchAtLogin      { self.launchAtLogin      = launch }
+                    if let restore  = prefs.restoreLastStation { self.restoreLastStation = restore }
+                    if let confirm  = prefs.confirmQuit        { self.confirmQuit        = confirm }
+                    self.lastStationUUID = prefs.lastStationUUID
+                }
+            } catch {
+                self.debugLog.append(.error, "Preferences load failed (archived, using defaults): \(error.localizedDescription)", source: "app.boot")
             }
-            self.favorites = await self.persistence.loadFavorites()
-            self.favoriteStationData = await self.persistence.loadFavoriteStations()
-            self.history = await self.persistence.loadHistory()
-            self.customStations = await self.persistence.loadCustomStations()
+            self.isHydrating = false
+
+            // Load collections. On corruption the file is archived and the throw
+            // leaves the in-memory state untouched — never overwritten with empty.
+            do { self.favorites = try await self.persistence.loadFavorites() }
+            catch { self.debugLog.append(.error, "Favorites load failed (archived): \(error.localizedDescription)", source: "app.boot") }
+            do { self.favoriteStationData = try await self.persistence.loadFavoriteStations() }
+            catch { self.debugLog.append(.error, "Favorite stations load failed (archived): \(error.localizedDescription)", source: "app.boot") }
+            do { self.history = try await self.persistence.loadHistory() }
+            catch { self.debugLog.append(.error, "History load failed (archived): \(error.localizedDescription)", source: "app.boot") }
+            do { self.customStations = try await self.persistence.loadCustomStations() }
+            catch { self.debugLog.append(.error, "Custom stations load failed (archived): \(error.localizedDescription)", source: "app.boot") }
+
+            self.isHydrated = true
 
             self.debugLog.append(.info, "Loaded \(self.favorites.count) favorites, \(self.history.count) history entries, \(self.customStations.count) custom stations", source: "app.boot")
 
@@ -259,17 +390,22 @@ final class AppState {
     // MARK: - Actions
 
     func play(_ station: Station) {
-        recordHistoryForCurrentStation()
-
-        currentStation = station
-        playStartTime = Date()
-        lastStationUUID = station.stationuuid
-        persistPreferences()
-
+        // Validate the URL BEFORE mutating any state — otherwise an unplayable
+        // station would still become `currentStation`/`lastStationUUID` (shown in
+        // the UI and restored on next launch) while the old stream keeps playing.
         guard let url = URL(string: station.urlResolved ?? station.url) else {
             debugLog.append(.error, "Invalid stream URL for \(station.name)", source: "audio.player")
             return
         }
+
+        recordHistoryForCurrentStation()
+
+        currentStation = station
+        sessionStartTime = Date()
+        segmentStartTime = Date()
+        accumulatedPlayTime = 0
+        lastStationUUID = station.stationuuid
+        persistPreferences()
 
         streamPlayer.play(url: url)
 
@@ -279,7 +415,18 @@ final class AppState {
     }
 
     func togglePlayPause() {
+        let wasPlaying = streamPlayer.isPlaying
         streamPlayer.togglePlayPause()
+        if wasPlaying {
+            // Pausing — bank the active segment so paused time isn't counted.
+            if let start = segmentStartTime {
+                accumulatedPlayTime += Date().timeIntervalSince(start)
+                segmentStartTime = nil
+            }
+        } else if currentStation != nil {
+            // Resuming — start a fresh active segment.
+            segmentStartTime = Date()
+        }
     }
 
     func toggleMiniMode() {
@@ -293,7 +440,10 @@ final class AppState {
         } else {
             isMiniMode = true
             MiniWindowManager.shared.show(state: self)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                // A second quick toggle may have exited mini mode already; hiding
+                // the main window now would leave the app with no visible window.
+                guard let self, self.isMiniMode else { return }
                 for window in NSApp.windows where window.contentView != nil && window.isVisible {
                     if window is NSPanel { continue }
                     if window.frame.width > AppLayout.miniWidth {
@@ -308,7 +458,9 @@ final class AppState {
         recordHistoryForCurrentStation()
         streamPlayer.stop()
         currentStation = nil
-        playStartTime = nil
+        sessionStartTime = nil
+        segmentStartTime = nil
+        accumulatedPlayTime = 0
         sleepTimer.cancel()
     }
 
@@ -320,10 +472,7 @@ final class AppState {
             favorites.append(station.stationuuid)
             favoriteStationData[station.stationuuid] = station
         }
-        Task {
-            await persistence.saveFavorites(favorites)
-            await persistence.saveFavoriteStations(favoriteStationData)
-        }
+        saveFavoritesToDisk()
     }
 
     func vote(for station: Station) {
@@ -407,19 +556,34 @@ final class AppState {
         await loadTabData(for: .countries)
     }
 
+    func loadServers() async {
+        guard let cache else { return }
+        servers = await cache.servers()
+    }
+
     func loadStationsForCountry(_ name: String) async {
         guard let cache else { return }
         selectedCountryCode = name
-        countryStations = await cache.stationsByCountry(name)
+        let result = await cache.stationsByCountry(name)
+        // A newer country selection may have superseded this one mid-flight —
+        // don't paint country A's stations while the user is now on country B.
+        guard selectedCountryCode == name else { return }
+        countryStations = result
     }
 
     func performSearch() async {
-        guard let cache, !searchQuery.isEmpty else {
+        guard let cache else { searchResults = []; return }
+        let query = searchQuery
+        guard !query.isEmpty else {
             searchResults = []
+            isLoadingTab = false
             return
         }
         isLoadingTab = true
-        searchResults = await cache.search(name: searchQuery)
+        let results = await cache.search(name: query)
+        // Drop a response that arrived after the user kept typing.
+        guard query == searchQuery else { return }
+        searchResults = results
         isLoadingTab = false
     }
 
@@ -445,11 +609,8 @@ final class AppState {
         )
         customStations.append(station)
         autoFavoriteCustom(station)
-        Task {
-            await persistence.saveCustomStations(customStations)
-            await persistence.saveFavorites(favorites)
-            await persistence.saveFavoriteStations(favoriteStationData)
-        }
+        saveCustomStationsToDisk()
+        saveFavoritesToDisk()
         debugLog.append(.info, "Added custom station: \(name)", source: "custom")
     }
 
@@ -459,11 +620,8 @@ final class AppState {
         let uuid = custom.id.uuidString
         favorites.removeAll { $0 == uuid }
         favoriteStationData.removeValue(forKey: uuid)
-        Task {
-            await persistence.saveCustomStations(customStations)
-            await persistence.saveFavorites(favorites)
-            await persistence.saveFavoriteStations(favoriteStationData)
-        }
+        saveCustomStationsToDisk()
+        saveFavoritesToDisk()
     }
 
     func importM3U(_ text: String) async {
@@ -482,20 +640,22 @@ final class AppState {
                 matched += 1
             }
         }
-        await persistence.saveFavorites(favorites)
-        await persistence.saveFavoriteStations(favoriteStationData)
+        saveFavoritesToDisk()
         let skipped = parsed.count - matched
         debugLog.append(.info, "M3U import: \(matched) matched in RBK, \(skipped) not found (skipped)", source: "custom")
     }
 
     private func autoFavoriteCustom(_ custom: CustomStation) {
-        let station = customStationAsStation(custom)
+        guard let station = customStationAsStation(custom) else { return }
         guard !favorites.contains(station.stationuuid) else { return }
         favorites.append(station.stationuuid)
         favoriteStationData[station.stationuuid] = station
     }
 
-    func customStationAsStation(_ custom: CustomStation) -> Station {
+    /// Builds a `Station` from a user-defined custom station. Returns nil (and
+    /// logs) instead of trapping if RadioBrowserKit's model ever gains a new
+    /// required field that this dictionary doesn't supply.
+    func customStationAsStation(_ custom: CustomStation) -> Station? {
         var dict: [String: Any] = [
             "stationuuid": custom.id.uuidString,
             "name": custom.name,
@@ -505,27 +665,38 @@ final class AppState {
         if let v = custom.language { dict["language"] = v }
         if let v = custom.bitrate  { dict["bitrate"] = v }
 
-        let data = try! JSONSerialization.data(withJSONObject: dict)
-        return try! JSONDecoder().decode(Station.self, from: data)
+        do {
+            let data = try JSONSerialization.data(withJSONObject: dict)
+            return try JSONDecoder().decode(Station.self, from: data)
+        } catch {
+            debugLog.append(.error, "Failed to build station from custom '\(custom.name)': \(error.localizedDescription)", source: "custom")
+            return nil
+        }
     }
 
     // MARK: - Station lookup
 
     func station(for uuid: String) -> Station? {
         if let s = favoriteStationData[uuid] { return s }
-        let all = stations + discoverTopVoted + discoverPopular
-            + topVotedStations + popularStations
-            + searchResults + countryStations + mapStations
-        return all.first { $0.stationuuid == uuid }
+        return allLoadedStations.first { $0.stationuuid == uuid }
     }
 
     // MARK: - History management
 
+    func clearHistory() {
+        history = []
+        saveHistoryToDisk()
+    }
+
     private func recordHistoryForCurrentStation() {
         guard let station = currentStation,
-              let start = playStartTime else { return }
+              let start = sessionStartTime else { return }
 
-        let duration = Date().timeIntervalSince(start)
+        // Active listening time only — paused time is excluded.
+        var duration = accumulatedPlayTime
+        if let segStart = segmentStartTime {
+            duration += Date().timeIntervalSince(segStart)
+        }
         guard duration > 10 else { return }
 
         let entry = HistoryEntry(
@@ -542,6 +713,6 @@ final class AppState {
             history = Array(history.prefix(maxHistory))
         }
 
-        Task { await persistence.saveHistory(history) }
+        saveHistoryToDisk()
     }
 }

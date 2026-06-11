@@ -16,8 +16,7 @@ extension Station {
     }
 
     var gradientColors: (Color, Color) {
-        let pair = stationGradients[stationuuid] ?? gradientPair(seed: stationuuid)
-        return pair
+        gradientPair(seed: stationuuid)
     }
 
     var bitrateFormatted: String? {
@@ -56,24 +55,7 @@ extension Station {
     }
 }
 
-// MARK: - Per-station gradient colors (from data.js cover field)
-
-private let stationGradients: [String: (Color, Color)] = [
-    "a1":  (Color(hex: 0xE85D75), Color(hex: 0x2D1B3A)),
-    "a2":  (Color(hex: 0xFF4040), Color(hex: 0x1A1A1A)),
-    "a3":  (Color(hex: 0x0066CC), Color(hex: 0x001A33)),
-    "a4":  (Color(hex: 0x000000), Color(hex: 0x222222)),
-    "a5":  (Color(hex: 0x7CBA47), Color(hex: 0x1A3320)),
-    "a6":  (Color(hex: 0xD4751C), Color(hex: 0x3D1D05)),
-    "a7":  (Color(hex: 0x1A73E8), Color(hex: 0x0A1A3A)),
-    "a8":  (Color(hex: 0x444444), Color(hex: 0x1A1A1A)),
-    "a9":  (Color(hex: 0xFF7A40), Color(hex: 0x3A1A05)),
-    "a10": (Color(hex: 0xFF2D8E), Color(hex: 0x220A14)),
-    "a11": (Color(hex: 0x0A0A0A), Color(hex: 0x2D2D2D)),
-    "a12": (Color(hex: 0xFBBF24), Color(hex: 0x3D2A05)),
-]
-
-// MARK: - Fallback gradient hash
+// MARK: - Deterministic per-station gradient
 
 private let gradientPalette: [(UInt32, UInt32)] = [
     (0x8B3A5E, 0x3A1A4A),

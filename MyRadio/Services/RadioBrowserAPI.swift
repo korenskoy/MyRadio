@@ -29,19 +29,23 @@ actor RadioBrowserAPI {
 
     // MARK: - Stations
 
-    func topVoted(_ count: Int = 50) async -> [Station] {
+    /// All fetch methods return `nil` on failure (transport/decoding/server)
+    /// and a (possibly empty) array on success. This lets the cache layer tell a
+    /// genuine empty result apart from an error and avoid caching failures.
+
+    func topVoted(_ count: Int = 50) async -> [Station]? {
         await fetch("topVote(\(count))") {
             try await client.topVote(count)
-        } ?? []
+        }
     }
 
-    func topClicked(_ count: Int = 50) async -> [Station] {
+    func topClicked(_ count: Int = 50) async -> [Station]? {
         await fetch("topClick(\(count))") {
             try await client.topClick(count)
-        } ?? []
+        }
     }
 
-    func search(name: String, limit: Int = 100) async -> [Station] {
+    func search(name: String, limit: Int = 100) async -> [Station]? {
         var q = StationSearchQuery()
         q.name = name
         q.limit = limit
@@ -50,34 +54,34 @@ actor RadioBrowserAPI {
         q.hidebroken = true
         return await fetch("search(name: \(name))") {
             try await client.search(q)
-        } ?? []
+        }
     }
 
-    func stationsByTag(_ tag: String, limit: Int = 100) async -> [Station] {
+    func stationsByTag(_ tag: String, limit: Int = 100) async -> [Station]? {
         await fetch("stationsByTag(\(tag))") {
             try await client.stationsByTag(tag, exact: true, order: .votes, reverse: true, limit: limit)
-        } ?? []
+        }
     }
 
-    func stationsByCountryCode(_ code: String, limit: Int = 100) async -> [Station] {
+    func stationsByCountryCode(_ code: String, limit: Int = 100) async -> [Station]? {
         await fetch("stationsByCountryCode(\(code))") {
             try await client.stationsByCountryCode(code, order: .votes, reverse: true, limit: limit)
-        } ?? []
+        }
     }
 
-    func stationsByCountry(_ name: String, limit: Int = 100) async -> [Station] {
+    func stationsByCountry(_ name: String, limit: Int = 100) async -> [Station]? {
         await fetch("stationsByCountry(\(name))") {
             try await client.stationsByCountry(name, exact: true, order: .votes, reverse: true, limit: limit)
-        } ?? []
+        }
     }
 
-    func stationsByURL(_ url: String) async -> [Station] {
+    func stationsByURL(_ url: String) async -> [Station]? {
         await fetch("stationsByURL(\(url))") {
             try await client.stationsByURL(url)
-        } ?? []
+        }
     }
 
-    func stationsWithGeo() async -> [Station] {
+    func stationsWithGeo() async -> [Station]? {
         let pageSize = 1_000
         var all: [Station] = []
         var offset = 0
@@ -87,9 +91,12 @@ actor RadioBrowserAPI {
             q.hidebroken = true
             q.limit  = pageSize
             q.offset = offset
-            let page = await fetch("stationsWithGeo[\(offset)]") {
+            // A failed page must NOT be treated as "end of data" — that would
+            // cache a truncated list as if it were complete.
+            let pageResult = await fetch("stationsWithGeo[\(offset)]") {
                 try await self.client.search(q)
-            } ?? []
+            }
+            guard let page = pageResult else { return nil }
             all.append(contentsOf: page)
             log.append(.info, "stationsWithGeo: \(all.count) loaded", source: "rb.client")
             if page.count < pageSize { break }
@@ -100,21 +107,29 @@ actor RadioBrowserAPI {
 
     // MARK: - Metadata
 
-    func tags(limit: Int = 200) async -> [NamedCount] {
-        let result: [NamedCount] = await fetch("tags") {
+    func tags(limit: Int = 200) async -> [NamedCount]? {
+        let result: [NamedCount]? = await fetch("tags") {
             try await client.tags(limit: limit)
-        } ?? []
-        return result.sorted { $0.stationcount > $1.stationcount }
+        }
+        return result?.sorted { $0.stationcount > $1.stationcount }
     }
 
-    func countries() async -> [NamedCount] {
+    /// Real Radio Browser mirror servers (for the DevTools Servers tab).
+    func servers() async -> [StreamingServerMirror]? {
+        await fetch("servers") {
+            try await client.servers()
+        }
+    }
+
+    func countries() async -> [NamedCount]? {
         let pageSize = 100
         var all: [NamedCount] = []
         var offset = 0
         repeat {
-            let page: [NamedCount] = await fetch("countries[\(offset)]") {
+            let pageResult: [NamedCount]? = await fetch("countries[\(offset)]") {
                 try await self.client.countries(offset: offset, limit: pageSize)
-            } ?? []
+            }
+            guard let page = pageResult else { return nil }
             all.append(contentsOf: page)
             if page.count < pageSize { break }
             offset += pageSize
@@ -133,6 +148,10 @@ actor RadioBrowserAPI {
         do {
             let resp = try await client.click(stationUUID: stationUUID)
             clickTimestamps[stationUUID] = Date()
+            // Drop entries past their cooldown so the dictionary doesn't grow
+            // without bound over a long session.
+            let cutoff = Date().addingTimeInterval(-clickCooldown)
+            clickTimestamps = clickTimestamps.filter { $0.value > cutoff }
             log.append(.info, "Click registered for \(stationUUID) → \(resp.url)", source: "rb.client")
         } catch {
             handleError(error, context: "click(\(stationUUID))")
@@ -148,6 +167,8 @@ actor RadioBrowserAPI {
         do {
             let resp = try await client.vote(stationUUID: stationUUID)
             voteTimestamps[stationUUID] = Date()
+            let cutoff = Date().addingTimeInterval(-voteCooldown)
+            voteTimestamps = voteTimestamps.filter { $0.value > cutoff }
             log.append(.info, "Vote registered for \(stationUUID) → \(resp.votes) votes", source: "rb.client")
         } catch {
             handleError(error, context: "vote(\(stationUUID))")

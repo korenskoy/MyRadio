@@ -36,10 +36,13 @@ struct StationArtwork: View {
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .task(id: station.stationuuid) {
-            image = await ArtworkCache.shared.image(
+            let img = await ArtworkCache.shared.image(
                 for: station.stationuuid,
                 faviconURL: station.favicon
             )
+            // Avoid painting a stale image if the row was reused for another station.
+            guard !Task.isCancelled else { return }
+            image = img
         }
     }
 }

@@ -201,6 +201,15 @@ private final class StationAnnotationView: MKAnnotationView {
         layer?.cornerRadius = size / 2
         layer?.borderWidth  = selected ? 2 : 1
     }
+
+    // Reset to the base (unselected) size — otherwise a previously-selected pin
+    // stays enlarged when MapKit reuses it for another station.
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        frame = CGRect(x: 0, y: 0, width: 11, height: 11)
+        layer?.cornerRadius = 5.5
+        layer?.borderWidth  = 1
+    }
 }
 
 // MARK: - Cluster pin view

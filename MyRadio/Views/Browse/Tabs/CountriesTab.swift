@@ -7,20 +7,30 @@ struct CountriesTab: View {
     @State private var sortByName = false
     @State private var selectedCountry: NamedCount?
     @State private var isLoadingStations = false
+    @State private var countryLoadTask: Task<Void, Never>?
+    @State private var filterText = ""
 
     private var totalStations: Int {
         state.apiCountries.reduce(0) { $0 + $1.stationcount }
     }
 
     private var sortedCountries: [NamedCount] {
+        let filtered: [NamedCount]
+        if filterText.isEmpty {
+            filtered = state.apiCountries
+        } else {
+            filtered = state.apiCountries.filter {
+                CountryFlag.displayName(for: $0.name).localizedCaseInsensitiveContains(filterText)
+                    || $0.name.localizedCaseInsensitiveContains(filterText)
+            }
+        }
         if sortByName {
-            state.apiCountries.sorted {
+            return filtered.sorted {
                 CountryFlag.displayName(for: $0.name)
                     .localizedCaseInsensitiveCompare(CountryFlag.displayName(for: $1.name)) == .orderedAscending
             }
-        } else {
-            state.apiCountries
         }
+        return filtered
     }
 
     var body: some View {
@@ -43,9 +53,10 @@ struct CountriesTab: View {
                     .font(.system(size: 11))
                     .foregroundStyle(colors.fg3)
                     .frame(width: 28)
-                Text("Filter countries...")
+                TextField("Filter countries...", text: $filterText)
+                    .textFieldStyle(.plain)
                     .font(.system(size: 13))
-                    .foregroundStyle(colors.fg3)
+                    .foregroundStyle(colors.fg)
             }
             .frame(width: 240, height: 32, alignment: .leading)
             .background(colors.bgInput)
@@ -95,8 +106,10 @@ struct CountriesTab: View {
     private func onSelect(_ country: NamedCount) {
         selectedCountry = country
         isLoadingStations = true
-        Task {
+        countryLoadTask?.cancel()
+        countryLoadTask = Task {
             await state.loadStationsForCountry(country.name)
+            guard !Task.isCancelled, selectedCountry?.name == country.name else { return }
             isLoadingStations = false
         }
     }

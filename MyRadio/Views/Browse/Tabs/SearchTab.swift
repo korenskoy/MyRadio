@@ -20,8 +20,13 @@ struct SearchTab: View {
                 StationListSection(stations: state.searchResults)
             }
         }
-        .onChange(of: state.searchQuery) { _, _ in
-            Task { await state.performSearch() }
+        // .task(id:) debounces (one request per typing pause) and cancels the
+        // previous search when the query changes, so out-of-order responses can't
+        // overwrite newer results.
+        .task(id: state.searchQuery) {
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            await state.performSearch()
         }
     }
 }

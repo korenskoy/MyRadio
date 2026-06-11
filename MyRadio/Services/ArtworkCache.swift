@@ -45,7 +45,7 @@ actor ArtworkCache {
         let dest = fileURL
         let task = Task<NSImage?, Never> {
             do {
-                let (data, response) = try await URLSession.shared.data(from: url)
+                let (data, response) = try await NetworkActivityLog.shared.tracked(url)
                 guard let http = response as? HTTPURLResponse,
                       (200...299).contains(http.statusCode),
                       data.count > 100,

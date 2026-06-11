@@ -67,10 +67,10 @@ struct DebugPanel: View {
     private func badgeCount(for tab: DebugTab) -> Int? {
         switch tab {
         case .logs:    return state.debugLog.entries.count
-        case .network: return MockDebug.network.count
+        case .network: return NetworkActivityLog.shared.records.isEmpty ? nil : NetworkActivityLog.shared.records.count
         case .stream:  return nil
         case .icy:     return state.streamPlayer.icyMetadata.isEmpty ? nil : state.streamPlayer.icyMetadata.count
-        case .servers: return MockDebug.servers.count
+        case .servers: return state.servers.isEmpty ? nil : state.servers.count
         }
     }
 
@@ -98,7 +98,18 @@ struct DebugPanel: View {
         panel.nameFieldStringValue = "myradio-debug.log"
         panel.allowedContentTypes = [.plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        try? state.debugLog.asText().write(to: url, atomically: true, encoding: .utf8)
+        // DevTools is intentionally English-only (see DebugTab.label), so the
+        // alert text isn't localized.
+        do {
+            try state.debugLog.asText().write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            state.debugLog.append(.error, "Failed to save logs: \(error.localizedDescription)", source: "devtools")
+            let alert = NSAlert()
+            alert.messageText = "Couldn’t save logs"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
     }
 
     private func debugActionButton(_ systemName: String, active: Bool = false, action: @escaping () -> Void = {}) -> some View {
@@ -110,9 +121,7 @@ struct DebugPanel: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .onHover { hovering in
-            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-        }
+        .pointingHandCursor()
     }
 
     // MARK: - Tab content
@@ -281,12 +290,26 @@ private struct LogsTabView: View {
     }
 
     private var logList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(filteredLogs) { entry in
-                    logRow(entry)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(filteredLogs) { entry in
+                        logRow(entry).id(entry.id)
+                    }
                 }
             }
+            .onChange(of: filteredLogs.count) { _, _ in scrollToNewest(proxy) }
+            .onChange(of: autoScroll) { _, _ in scrollToNewest(proxy) }
+        }
+    }
+
+    private func scrollToNewest(_ proxy: ScrollViewProxy) {
+        guard autoScroll else { return }
+        // Newest entry is first when sorted newest-first, otherwise last.
+        let newest = state.debugLog.logsNewestFirst ? filteredLogs.first : filteredLogs.last
+        guard let id = newest?.id else { return }
+        withAnimation(.easeOut(duration: 0.12)) {
+            proxy.scrollTo(id, anchor: state.debugLog.logsNewestFirst ? .top : .bottom)
         }
     }
 
@@ -360,25 +383,51 @@ private struct LogsTabView: View {
 private struct NetworkTabView: View {
     @Environment(\.appColors) private var colors
 
+    private var records: [NetworkActivityLog.Record] {
+        NetworkActivityLog.shared.records.reversed()   // newest first
+    }
+
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                netHeader
-                ForEach(MockDebug.network) { line in
-                    netRow(line)
+        VStack(spacing: 0) {
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    netHeader
+                    if records.isEmpty {
+                        Text(verbatim: "No requests recorded yet")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(colors.fgDebug2)
+                            .frame(maxWidth: .infinity, minHeight: 120)
+                    } else {
+                        ForEach(records) { rec in
+                            netRow(rec)
+                        }
+                    }
                 }
             }
+            // Honest scope note — RadioBrowserKit issues its API calls through an
+            // internal client we can't hook, so only our own requests show here.
+            Text(verbatim: "App-issued requests only · RadioBrowserKit API calls aren’t captured")
+                .font(.system(size: 9.5, design: .monospaced))
+                .foregroundStyle(colors.fgDebug2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(colors.bgDebugRow)
         }
+    }
+
+    private static func sizeString(_ bytes: Int) -> String {
+        bytes <= 0 ? "—" : ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .binary)
     }
 
     private var netHeader: some View {
         HStack(spacing: 0) {
             headerCell("Time",   width: 70)
             headerCell("Method", width: 50)
-            headerCell("Status", width: 60)
-            headerCell("URL",    width: nil)
-            headerCell("Time",   width: 70)
-            headerCell("Size",   width: 60)
+            headerCell("Status",   width: 60)
+            headerCell("URL",      width: nil)
+            headerCell("Duration", width: 70)
+            headerCell("Size",     width: 60)
         }
         .padding(.horizontal, 10)
         .frame(height: 24)
@@ -403,43 +452,34 @@ private struct NetworkTabView: View {
         .foregroundStyle(colors.fgDebug2)
     }
 
-    private func netRow(_ line: MockDebug.NetLine) -> some View {
+    private func netRow(_ rec: NetworkActivityLog.Record) -> some View {
         HStack(spacing: 0) {
-            Text(line.time)
+            Text(rec.time)
                 .font(.system(size: 10.5, design: .monospaced))
                 .foregroundStyle(colors.fgDebug2)
                 .frame(width: 70, alignment: .leading)
 
-            Text(line.method)
+            Text(rec.method)
                 .font(.system(size: 10.5, weight: .bold, design: .monospaced))
                 .foregroundStyle(colors.statusInfo)
                 .frame(width: 50, alignment: .leading)
 
-            statusBadge(line.status)
+            statusBadge(rec.status)
                 .frame(width: 60, alignment: .leading)
 
-            HStack(spacing: 4) {
-                if line.isStream {
-                    Text("STREAM")
-                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                        .foregroundStyle(colors.accent.accent)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(colors.accent.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 3))
-                }
-                Text(line.url)
-                    .font(Typography.debugLog)
-                    .foregroundStyle(colors.fgDebug)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(rec.url)
+                .font(Typography.debugLog)
+                .foregroundStyle(colors.fgDebug)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text("\(line.ms)ms")
+            Text("\(rec.ms)ms")
                 .font(.system(size: 10.5, design: .monospaced))
-                .foregroundStyle(line.ms > 1000 ? colors.statusWarn : colors.fgDebug2)
+                .foregroundStyle(rec.ms > 1000 ? colors.statusWarn : colors.fgDebug2)
                 .frame(width: 70, alignment: .trailing)
 
-            Text(line.size)
+            Text(Self.sizeString(rec.bytes))
                 .font(.system(size: 10.5, design: .monospaced))
                 .foregroundStyle(colors.fgDebug2)
                 .frame(width: 60, alignment: .trailing)
@@ -642,9 +682,10 @@ private struct ICYTabView: View {
     }
 }
 
-// MARK: - Servers tab (mock for now)
+// MARK: - Servers tab (real Radio Browser mirrors)
 
 private struct ServersTabView: View {
+    @Environment(AppState.self) private var state
     @Environment(\.appColors) private var colors
 
     var body: some View {
@@ -664,7 +705,7 @@ private struct ServersTabView: View {
                             .foregroundStyle(colors.fgDebug)
                         Text("·")
                             .foregroundStyle(colors.fgDebug2)
-                        Text("resolved \(MockDebug.servers.count) hosts")
+                        Text("resolved \(state.servers.count) hosts")
                             .foregroundStyle(colors.fgDebug2)
                     }
                     .font(.system(size: 10, design: .monospaced))
@@ -672,92 +713,62 @@ private struct ServersTabView: View {
                 .padding(.horizontal, 12)
                 .padding(.top, 12)
 
-                VStack(spacing: 0) {
-                    ForEach(MockDebug.servers) { server in
-                        serverRow(server)
+                if state.servers.isEmpty {
+                    Text(verbatim: "Loading mirrors…")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(colors.fgDebug2)
+                        .frame(maxWidth: .infinity, minHeight: 100)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(state.servers) { server in
+                            serverRow(server)
+                        }
                     }
                 }
             }
             .padding(.bottom, 12)
         }
+        .task { await state.loadServers() }
     }
 
-    private func serverRow(_ server: MockDebug.ServerEntry) -> some View {
+    private func serverRow(_ server: StreamingServerMirror) -> some View {
         HStack(spacing: 8) {
             Circle()
-                .fill(dotColor(server))
+                .fill(colors.statusOk)
                 .frame(width: 8, height: 8)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(server.host)
+                Text(server.name)
                     .font(.system(size: 10.5, weight: .medium, design: .monospaced))
                     .foregroundStyle(colors.fgDebug)
+                    .textSelection(.enabled)
                 HStack(spacing: 4) {
-                    Text(server.ip)
-                        .foregroundStyle(colors.fgDebug2)
-                    Text("·")
-                        .foregroundStyle(colors.fgDebug2)
-                    Text(server.region)
-                        .foregroundStyle(colors.fgDebug2)
+                    if let ip = server.ip, !ip.isEmpty {
+                        Text(ip).foregroundStyle(colors.fgDebug2)
+                    }
+                    if let location = server.location, !location.isEmpty {
+                        Text("·").foregroundStyle(colors.fgDebug2)
+                        Text(location).foregroundStyle(colors.fgDebug2)
+                    }
                 }
                 .font(.system(size: 9.5, design: .monospaced))
             }
 
             Spacer()
 
-            if let lat = server.latency {
-                Text("\(lat)ms")
-                    .font(.system(size: 10.5, design: .monospaced))
-                    .foregroundStyle(lat > 100 ? colors.statusWarn : colors.fgDebug2)
-            } else {
-                Text("—")
-                    .font(.system(size: 10.5, design: .monospaced))
+            if let url = server.url, !url.isEmpty {
+                Text(url)
+                    .font(.system(size: 9.5, design: .monospaced))
                     .foregroundStyle(colors.fgDebug2)
-            }
-
-            Text(statusLabel(server))
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(statusLabelColor(server))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(statusLabelColor(server).opacity(0.12), in: RoundedRectangle(cornerRadius: 3))
-
-            if !server.isActive && !server.isBroken {
-                Button {
-                } label: {
-                    Text("Switch")
-                        .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundStyle(colors.accent.accent)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(colors.accent.accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 4))
-                }
-                .buttonStyle(.plain)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(server.isActive ? colors.accent.accent.opacity(0.06) : Color.clear)
         .overlay(alignment: .bottom) {
             Rectangle().fill(colors.borderDebug).frame(height: 0.5)
         }
-    }
-
-    private func dotColor(_ server: MockDebug.ServerEntry) -> Color {
-        if server.isBroken { return colors.statusErr }
-        if server.isActive { return colors.accent.accent }
-        return colors.statusOk
-    }
-
-    private func statusLabel(_ server: MockDebug.ServerEntry) -> String {
-        if server.isBroken { return "DOWN" }
-        if server.isActive { return "ACTIVE" }
-        return "OK"
-    }
-
-    private func statusLabelColor(_ server: MockDebug.ServerEntry) -> Color {
-        if server.isBroken { return colors.statusErr }
-        if server.isActive { return colors.accent.accent }
-        return colors.statusOk
     }
 }

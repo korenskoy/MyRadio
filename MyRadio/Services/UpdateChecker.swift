@@ -52,6 +52,10 @@ final class UpdateChecker: ObservableObject {
         timer = nil
     }
 
+    deinit {
+        timer?.invalidate()
+    }
+
     func checkNow() async {
         isChecking = true
         defer { isChecking = false }
@@ -59,7 +63,7 @@ final class UpdateChecker: ObservableObject {
         var request = URLRequest(url: feedURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue("application/atom+xml", forHTTPHeaderField: "Accept")
         do {
-            let (data, response) = try await session.data(for: request)
+            let (data, response) = try await NetworkActivityLog.shared.tracked(request, session: session)
             guard let http = response as? HTTPURLResponse else { return }
             guard (200..<300).contains(http.statusCode) else {
                 Self.log.error("Atom feed HTTP \(http.statusCode)")

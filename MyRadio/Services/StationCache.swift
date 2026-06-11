@@ -59,7 +59,7 @@ actor StationCache {
     }
 
     func stationsByURL(_ url: String) async -> [Station] {
-        await api.stationsByURL(url)
+        await api.stationsByURL(url) ?? []
     }
 
     func stationsWithGeo() async -> [Station] {
@@ -76,9 +76,13 @@ actor StationCache {
         await cached("countries-all") { await self.api.countries() }
     }
 
+    /// Not cached — small, dev-only, and should reflect live mirror health.
+    func servers() async -> [StreamingServerMirror] {
+        await api.servers() ?? []
+    }
+
     func invalidateCountries() {
-        let file = cacheDir.appendingPathComponent("countries-all.json")
-        try? FileManager.default.removeItem(at: file)
+        invalidate(prefix: "countries-")
         log.append(.info, "Countries cache invalidated", source: "cache")
     }
 
@@ -94,20 +98,29 @@ actor StationCache {
 
     // MARK: - Invalidation
 
-    func invalidateTopVoted(count: Int = 200) {
-        let file = cacheDir.appendingPathComponent("topVoted-\(count).json")
-        try? FileManager.default.removeItem(at: file)
+    func invalidateTopVoted() {
+        // Both the 50- (discover) and 200-count files share this prefix; a
+        // single count-specific delete would leave the quick-screen list stale.
+        invalidate(prefix: "topVoted-")
     }
 
-    func invalidatePopular(count: Int = 200) {
-        let file = cacheDir.appendingPathComponent("topClicked-\(count).json")
-        try? FileManager.default.removeItem(at: file)
+    func invalidatePopular() {
+        invalidate(prefix: "topClicked-")
     }
 
     func invalidateGeo() {
-        let file = cacheDir.appendingPathComponent("geo-all.json")
-        try? FileManager.default.removeItem(at: file)
+        invalidate(prefix: "geo-")
         log.append(.info, "Geo cache invalidated", source: "cache")
+    }
+
+    /// Removes every cache file whose name starts with `prefix` (e.g. all
+    /// `topVoted-*` regardless of count).
+    private func invalidate(prefix: String) {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: nil) else { return }
+        for file in files where file.lastPathComponent.hasPrefix(prefix) {
+            try? fm.removeItem(at: file)
+        }
     }
 
     func invalidateAll() {
@@ -118,24 +131,35 @@ actor StationCache {
 
     // MARK: - Cache logic
 
-    private func cached<T: Codable>(_ key: String, fetch: () async -> T) async -> T {
+    /// `fetch` returns `nil` to signal a network/decoding failure (as opposed to
+    /// a genuinely empty result). On failure we never overwrite the cache; we
+    /// serve stale data if present, otherwise return empty — so one timeout at
+    /// cold start can't pin an empty list for the whole TTL.
+    private func cached<Element: Codable>(_ key: String, fetch: () async -> [Element]?) async -> [Element] {
         let fileURL = cacheDir.appendingPathComponent("\(key).json")
+        let cachedEntry: CacheEntry<[Element]>? = (try? Data(contentsOf: fileURL))
+            .flatMap { try? decoder.decode(CacheEntry<[Element]>.self, from: $0) }
 
-        if let data = try? Data(contentsOf: fileURL),
-           let entry = try? decoder.decode(CacheEntry<T>.self, from: data),
-           Date().timeIntervalSince(entry.cachedAt) < ttl {
+        if let entry = cachedEntry, Date().timeIntervalSince(entry.cachedAt) < ttl {
             log.append(.debug, "Cache hit: \(key)", source: "cache")
             return entry.data
         }
 
         log.append(.debug, "Cache miss: \(key)", source: "cache")
-        let result = await fetch()
+        guard let result = await fetch() else {
+            if let entry = cachedEntry {
+                let age = Int(Date().timeIntervalSince(entry.cachedAt))
+                log.append(.warn, "Fetch failed for \(key); serving stale cache (\(age)s old)", source: "cache")
+                return entry.data
+            }
+            log.append(.warn, "Fetch failed for \(key); no cache to fall back on", source: "cache")
+            return []
+        }
 
         let entry = CacheEntry(data: result, cachedAt: Date())
         if let data = try? encoder.encode(entry) {
             try? data.write(to: fileURL, options: .atomic)
         }
-
         return result
     }
 }

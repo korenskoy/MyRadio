@@ -18,9 +18,9 @@ struct HistoryEntry: Codable, Identifiable {
     }
 
     var timeFormatted: String {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f.string(from: playedAt)
+        // Locale-aware: respects 12/24-hour conventions and localized numerals
+        // (e.g. Persian digits), unlike a hard-coded "HH:mm".
+        playedAt.formatted(date: .omitted, time: .shortened)
     }
 }
 

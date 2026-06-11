@@ -10,6 +10,7 @@ struct TrackInfoSheet: View {
     @State private var artworks: [Int: NSImage] = [:]
     @State private var previewPlayer: AVPlayer?
     @State private var isPreviewPlaying = false
+    @State private var previewTimerTask: Task<Void, Never>?
     @Environment(\.appColors) private var colors
     @Environment(\.layoutDirection) private var layoutDirection
 
@@ -217,6 +218,10 @@ struct TrackInfoSheet: View {
         }
         .buttonStyle(.plain)
         .disabled(!hasPreview)
+        // Reset the button state when the 30s clip finishes on its own.
+        .onReceive(NotificationCenter.default.publisher(for: AVPlayerItem.didPlayToEndTimeNotification)) { _ in
+            if isPreviewPlaying { stopPreview() }
+        }
     }
 
     private func linkButton(label: String, icon: String, color: Color, url: String?) -> some View {
@@ -344,14 +349,21 @@ struct TrackInfoSheet: View {
             previewPlayer = AVPlayer(url: url)
             previewPlayer?.play()
             isPreviewPlaying = true
-            Task {
+            // Safety net only — natural end is handled by didPlayToEndTime. Stored
+            // and cancellable so switching previews doesn't let an old timer stop
+            // the new clip.
+            previewTimerTask?.cancel()
+            previewTimerTask = Task {
                 try? await Task.sleep(nanoseconds: 31_000_000_000)
+                guard !Task.isCancelled else { return }
                 stopPreview()
             }
         }
     }
 
     private func stopPreview() {
+        previewTimerTask?.cancel()
+        previewTimerTask = nil
         previewPlayer?.pause()
         previewPlayer = nil
         isPreviewPlaying = false

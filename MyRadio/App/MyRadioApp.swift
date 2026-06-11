@@ -121,14 +121,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let state, state.confirmQuit, state.isPlaying else { return .terminateNow }
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Quit MyRadio?")
-        alert.informativeText = String(localized: "Audio is currently playing. Quitting will stop the stream.")
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: String(localized: "Quit"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-        return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+        if let state, state.confirmQuit, state.isPlaying {
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Quit MyRadio?")
+            alert.informativeText = String(localized: "Audio is currently playing. Quitting will stop the stream.")
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: String(localized: "Quit"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
+            if alert.runModal() != .alertFirstButtonReturn {
+                return .terminateCancel
+            }
+        }
+        // Real quit path only — flush the in-flight listening session so it
+        // isn't lost (the async writers won't run once we return terminateNow).
+        state?.flushOnTerminate()
+        return .terminateNow
     }
 
     func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {

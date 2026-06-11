@@ -1,9 +1,9 @@
 import Foundation
 import RadioBrowserKit
 
+@MainActor
 @Observable
-final class DebugLog: @unchecked Sendable {
-    private let lock = NSLock()
+final class DebugLog {
     private let capacity: Int
 
     private(set) var entries: [LogEntry] = []
@@ -13,23 +13,28 @@ final class DebugLog: @unchecked Sendable {
         self.capacity = capacity
     }
 
-    func append(_ level: LogEntry.Level, _ message: String, source: String) {
+    /// Safe to call from any thread/actor (RBK logger callbacks, the persistence
+    /// actor, AVFoundation observers). The entry is built off-main but the
+    /// `@Observable` mutation is funneled onto the main actor, so SwiftUI reads
+    /// and writes never race.
+    nonisolated func append(_ level: LogEntry.Level, _ message: String, source: String) {
         let entry = LogEntry(
             time: Self.timestamp(),
             level: level,
             message: message,
             source: source
         )
-        lock.withLock {
-            entries.append(entry)
-            if entries.count > capacity {
-                entries.removeFirst(entries.count - capacity)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.entries.append(entry)
+            if self.entries.count > self.capacity {
+                self.entries.removeFirst(self.entries.count - self.capacity)
             }
         }
     }
 
     func clear() {
-        lock.withLock { entries.removeAll() }
+        entries.removeAll()
     }
 
     func asText() -> String {
@@ -38,13 +43,15 @@ final class DebugLog: @unchecked Sendable {
             .joined(separator: "\n")
     }
 
-    private static let formatter: DateFormatter = {
+    // DateFormatter is thread-safe for formatting (macOS 10.9+) and only ever
+    // read here, so sharing it across `append` callers is fine.
+    nonisolated private static let formatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm:ss.SSS"
         return f
     }()
 
-    private static func timestamp() -> String {
+    nonisolated private static func timestamp() -> String {
         formatter.string(from: Date())
     }
 }

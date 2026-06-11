@@ -20,15 +20,19 @@ final class StreamPlayer: NSObject {
     private var playerItem: AVPlayerItem?
     private var timeObserver: Any?
     private var statusObservation: NSKeyValueObservation?
-    private var rateObservation: NSKeyValueObservation?
+    private var timeControlObservation: NSKeyValueObservation?
     private var metadataOutput: AVPlayerItemMetadataOutput?
     private var log: DebugLog?
 
     private var currentURL: URL?
     private var isReconnecting = false
     private var reconnectTask: Task<Void, Never>?
+    private var stallWatchdog: Task<Void, Never>?
     private let maxReconnectAttempts = 5
     private let reconnectBaseDelay: TimeInterval = 2
+    /// How long playback may sit in `.waitingToPlayAtSpecifiedRate` before we
+    /// treat it as a dead stream and force a reconnect.
+    private let stallTimeout: TimeInterval = 12
 
     func configure(log: DebugLog) {
         self.log = log
@@ -92,9 +96,10 @@ final class StreamPlayer: NSObject {
     private func teardownPlayer() {
         // Cancel observations before touching the player — avoids callbacks on dead objects.
         statusObservation?.invalidate()
-        rateObservation?.invalidate()
+        timeControlObservation?.invalidate()
         statusObservation = nil
-        rateObservation = nil
+        timeControlObservation = nil
+        cancelStallWatchdog()
 
         if let obs = timeObserver { player?.removeTimeObserver(obs) }
         timeObserver = nil
@@ -145,7 +150,10 @@ final class StreamPlayer: NSObject {
                 try? await Task.sleep(for: .seconds(3))
                 guard !Task.isCancelled else { return }
 
-                if self.isPlaying {
+                // `isPlaying`/`rate` go true the instant we call play(), even on a
+                // dead stream — only `timeControlStatus == .playing` means audio
+                // is actually flowing.
+                if self.player?.timeControlStatus == .playing {
                     self.log?.append(.info, "Reconnected successfully after \(attempt) attempt(s)", source: "audio.player")
                     self.isReconnecting = false
                     return
@@ -162,35 +170,47 @@ final class StreamPlayer: NSObject {
     private func observePlayerItem() {
         guard let item = playerItem else { return }
 
+        // KVO callbacks arrive on an arbitrary AVFoundation queue; capture the
+        // primitives and hop to the main actor before touching observable state.
         statusObservation = item.observe(\.status) { [weak self] item, _ in
-            guard let self else { return }
-            switch item.status {
-            case .failed:
-                let err = item.error as NSError?
-                let desc = err?.localizedDescription ?? "unknown"
-                // ICY/HTTP errors during metadata updates are transient — don't reconnect.
-                let isTransient = err.map { isMpegTransientError($0) } ?? false
-                if isTransient {
-                    self.log?.append(.debug, "Transient stream event: \(desc)", source: "audio.player")
-                } else {
-                    self.log?.append(.error, "Stream failed: \(desc)", source: "audio.player")
-                    self.handleStreamFailure()
-                }
-            case .readyToPlay:
-                self.log?.append(.debug, "Stream ready to play", source: "audio.player")
-                self.updateAccessLog()
-            default:
-                break
+            let status = item.status
+            let error = item.error as NSError?
+            Task { @MainActor [weak self] in
+                self?.handleStatusChange(status, error: error)
             }
+        }
+    }
+
+    @MainActor
+    private func handleStatusChange(_ status: AVPlayerItem.Status, error: NSError?) {
+        switch status {
+        case .failed:
+            // `.failed` is terminal for an AVPlayerItem — it never recovers on
+            // its own, so always rebuild the item. (The transient-error class is
+            // only used to pick the log level here.)
+            let desc = error?.localizedDescription ?? "unknown"
+            if error.map({ isMpegTransientError($0) }) ?? false {
+                log?.append(.warn, "Stream failed (transient-class error) — reconnecting: \(desc)", source: "audio.player")
+            } else {
+                log?.append(.error, "Stream failed: \(desc)", source: "audio.player")
+            }
+            handleStreamFailure()
+        case .readyToPlay:
+            log?.append(.debug, "Stream ready to play", source: "audio.player")
+            updateAccessLog()
+        default:
+            break
         }
     }
 
     private func observePlayer() {
         guard let player else { return }
 
-        rateObservation = player.observe(\.rate) { [weak self] player, _ in
-            guard let self else { return }
-            self.isPlaying = player.rate > 0
+        timeControlObservation = player.observe(\.timeControlStatus) { [weak self] player, _ in
+            let status = player.timeControlStatus
+            Task { @MainActor [weak self] in
+                self?.handleTimeControlStatus(status)
+            }
         }
 
         timeObserver = player.addPeriodicTimeObserver(
@@ -200,6 +220,45 @@ final class StreamPlayer: NSObject {
             self?.updateBufferHealth()
             self?.updateAccessLog()
         }
+    }
+
+    @MainActor
+    private func handleTimeControlStatus(_ status: AVPlayer.TimeControlStatus) {
+        switch status {
+        case .playing:
+            isPlaying = true
+            cancelStallWatchdog()
+        case .waitingToPlayAtSpecifiedRate:
+            // Buffering or stalled: we're still "trying", but arm a watchdog so a
+            // stream that never delivers audio gets reconnected instead of
+            // hanging silently with isPlaying == true.
+            isPlaying = true
+            startStallWatchdog()
+        case .paused:
+            isPlaying = false
+            cancelStallWatchdog()
+        @unknown default:
+            break
+        }
+    }
+
+    private func startStallWatchdog() {
+        guard !isReconnecting else { return }
+        stallWatchdog?.cancel()
+        stallWatchdog = Task { @MainActor [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(for: .seconds(self.stallTimeout))
+            guard !Task.isCancelled else { return }
+            if self.player?.timeControlStatus != .playing, !self.isReconnecting {
+                self.log?.append(.warn, "Playback stalled for \(Int(self.stallTimeout))s — forcing reconnect", source: "audio.player")
+                self.handleStreamFailure()
+            }
+        }
+    }
+
+    private func cancelStallWatchdog() {
+        stallWatchdog?.cancel()
+        stallWatchdog = nil
     }
 
     // MARK: - Stream diagnostics

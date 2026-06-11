@@ -45,7 +45,7 @@ enum M3UParser {
     static func export(_ stations: [CustomStation]) -> String {
         var lines = ["#EXTM3U"]
         for s in stations {
-            lines.append("#EXTINF:-1,\(s.name)")
+            lines.append("#EXTINF:-1,\(sanitizeName(s.name))")
             lines.append(s.url)
         }
         return lines.joined(separator: "\n")
@@ -54,10 +54,18 @@ enum M3UParser {
     static func export(_ stations: [Station]) -> String {
         var lines = ["#EXTM3U"]
         for s in stations {
-            lines.append("#EXTINF:-1,\(s.name)")
+            lines.append("#EXTINF:-1,\(sanitizeName(s.name))")
             lines.append(s.urlResolved ?? s.url)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Strips newlines from a station name so it can't break the line-oriented
+    /// M3U structure (and spawn phantom entries on re-import).
+    private static func sanitizeName(_ name: String) -> String {
+        name.replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
     }
 
     private static func urlToFallbackName(_ urlString: String) -> String {

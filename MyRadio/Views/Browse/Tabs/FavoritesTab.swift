@@ -27,8 +27,8 @@ struct FavoritesTab: View {
     private func importM3U() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [
-            .init(filenameExtension: "m3u")!,
-            .init(filenameExtension: "m3u8")!,
+            UTType(filenameExtension: "m3u") ?? .audio,
+            UTType(filenameExtension: "m3u8") ?? .audio,
         ]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -42,10 +42,20 @@ struct FavoritesTab: View {
         let m3uText = M3UParser.export(state.favoriteStations)
 
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [.init(filenameExtension: "m3u")!]
+        panel.allowedContentTypes = [UTType(filenameExtension: "m3u") ?? .audio]
         panel.nameFieldStringValue = "stations.m3u"
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        try? m3uText.write(to: url, atomically: true, encoding: .utf8)
+        do {
+            try m3uText.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            // Don't let a failed write look like a successful export.
+            state.debugLog.append(.error, "M3U export failed: \(error.localizedDescription)", source: "custom")
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Couldn’t export stations")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
     }
 }

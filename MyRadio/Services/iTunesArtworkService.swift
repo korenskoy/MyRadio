@@ -29,12 +29,28 @@ struct iTunesTrack: Identifiable {
     }
 }
 
+/// Boxes a value-type track array so it can live in an `NSCache` (which only
+/// holds class instances).
+private final class TracksBox {
+    let tracks: [iTunesTrack]
+    init(_ tracks: [iTunesTrack]) { self.tracks = tracks }
+}
+
 /// Fetches track data from the iTunes Search API.
 actor iTunesArtworkService {
     static let shared = iTunesArtworkService()
 
-    private var tracksCache: [String: [iTunesTrack]] = [:]
-    private var imageCache:  [String: NSImage] = [:]
+    // Bounded so a long listening session can't grow these without limit.
+    private let tracksCache: NSCache<NSString, TracksBox> = {
+        let c = NSCache<NSString, TracksBox>()
+        c.countLimit = 200
+        return c
+    }()
+    private let imageCache: NSCache<NSURL, NSImage> = {
+        let c = NSCache<NSURL, NSImage>()
+        c.countLimit = 100
+        return c
+    }()
     private var inFlightTracks: [String: Task<[iTunesTrack], Never>] = [:]
     private var inFlightImages: [String: Task<NSImage?, Never>] = [:]
 
@@ -42,14 +58,19 @@ actor iTunesArtworkService {
 
     func tracks(artist: String, title: String) async -> [iTunesTrack] {
         let key = cacheKey(artist, title)
-        if let c = tracksCache[key] { return c }
+        if let c = tracksCache.object(forKey: key as NSString) { return c.tracks }
         if let t = inFlightTracks[key] { return await t.value }
 
         let task = Task<[iTunesTrack], Never> {
             let result = await fetchTracks(artist: artist, title: title)
-            tracksCache[key] = result
+            // Only cache a real response (incl. a legitimately empty result set).
+            // A transport/HTTP failure returns nil and is left uncached so the
+            // next attempt retries instead of being stuck empty for the session.
+            if let result {
+                tracksCache.setObject(TracksBox(result), forKey: key as NSString)
+            }
             inFlightTracks.removeValue(forKey: key)
-            return result
+            return result ?? []
         }
         inFlightTracks[key] = task
         return await task.value
@@ -63,14 +84,15 @@ actor iTunesArtworkService {
 
     func image(from url: URL) async -> NSImage? {
         let key = url.absoluteString
-        if let c = imageCache[key] { return c }
+        if let c = imageCache.object(forKey: url as NSURL) { return c }
         if let t = inFlightImages[key] { return await t.value }
 
         let task = Task<NSImage?, Never> {
-            guard let (data, _) = try? await URLSession.shared.data(from: url),
+            defer { inFlightImages.removeValue(forKey: key) }
+            guard let (data, response) = try? await NetworkActivityLog.shared.tracked(url),
+                  let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
                   let img = NSImage(data: data) else { return nil }
-            imageCache[key] = img
-            inFlightImages.removeValue(forKey: key)
+            imageCache.setObject(img, forKey: url as NSURL)
             return img
         }
         inFlightImages[key] = task
@@ -83,16 +105,23 @@ actor iTunesArtworkService {
         "\(artist)|\(title)".lowercased()
     }
 
-    private func fetchTracks(artist: String, title: String) async -> [iTunesTrack] {
-        let term = "\(artist) \(title)"
-        guard let encoded = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://itunes.apple.com/search?term=\(encoded)&media=music&entity=song&limit=8")
-        else { return [] }
+    /// Returns `nil` on transport/HTTP/parse failure (so the caller won't cache
+    /// it), or an array (possibly empty) on a successful 2xx response.
+    private func fetchTracks(artist: String, title: String) async -> [iTunesTrack]? {
+        var comps = URLComponents(string: "https://itunes.apple.com/search")
+        comps?.queryItems = [
+            URLQueryItem(name: "term", value: "\(artist) \(title)"),
+            URLQueryItem(name: "media", value: "music"),
+            URLQueryItem(name: "entity", value: "song"),
+            URLQueryItem(name: "limit", value: "8"),
+        ]
+        guard let url = comps?.url else { return [] }
 
-        guard let (data, _) = try? await URLSession.shared.data(from: url),
+        guard let (data, response) = try? await NetworkActivityLog.shared.tracked(url),
+              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let results = json["results"] as? [[String: Any]]
-        else { return [] }
+        else { return nil }
 
         return results.compactMap { r in
             guard let id    = r["trackId"]   as? Int,
