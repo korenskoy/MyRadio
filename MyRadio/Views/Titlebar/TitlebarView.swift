@@ -93,15 +93,29 @@ private struct DebugToggleButton: View {
 
 private struct SettingsButton: View {
     @Environment(\.appColors) private var colors
+    @EnvironmentObject private var updateChecker: UpdateChecker
+
+    private var hasUpdate: Bool { updateChecker.availableUpdate != nil }
 
     var body: some View {
         SettingsLink {
             Image(systemName: "gearshape")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(colors.fg3)
+                .overlay(alignment: .topTrailing) {
+                    if hasUpdate {
+                        Circle()
+                            .fill(Color(hex: 0xFF4040))
+                            .frame(width: 6, height: 6)
+                            .shadow(color: Color(hex: 0xFF4040), radius: 2)
+                            .offset(x: 3, y: -2)
+                    }
+                }
         }
         .buttonStyle(.plain)
-        .help(Text("Preferences (⌘,)"))
+        .help(hasUpdate
+              ? Text("Update available — open Preferences")
+              : Text("Preferences (⌘,)"))
     }
 }
 

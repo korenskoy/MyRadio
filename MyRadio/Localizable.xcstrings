@@ -9672,6 +9672,66 @@
         }
       }
     },
+    "Update available — open Preferences": {
+      "comment": "Settings gear tooltip in titlebar when a newer release is available",
+      "extractionState": "manual",
+      "localizations": {
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeniləmə mövcuddur — Tənzimləmələri açın"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update verfügbar — Einstellungen öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update available — open Preferences"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualización disponible — abrir Preferencias"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "به‌روزرسانی موجود است — تنظیمات را باز کنید"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mise à jour disponible — ouvrir les Préférences"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップデートが利用可能 — 設定を開く"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступно обновление — откройте «Настройки»"
+          }
+        },
+        "zh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有可用更新 — 打开设置"
+          }
+        }
+      }
+    },
     "Update available — version %@": {
       "extractionState": "manual",
       "localizations": {
