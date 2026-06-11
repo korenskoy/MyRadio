@@ -88,3 +88,30 @@ String Catalog (`MyRadio/Localizable.xcstrings`) управляется **тол
 - Поддерживаемые языки приложения заданы в `MyRadio/Models/AppLanguage.swift`: `en, ru, de, fr, es, az, fa, ja, zh`. Скрипт не валидирует — можно передать любую BCP-47 локаль, но catalog лучше держать синхронным с пикером в Preferences → General. **Фарси (`fa`) — RTL**: в `AppLanguage.isRTL == true`. SwiftUI автоматически переворачивает layout (`@Environment(\.layoutDirection) == .rightToLeft`), но в коде есть точечные исключения: TitlebarView зажат на `.leftToRight` (трафиклайты macOS всегда слева), и VolumeSlider вручную mirror'ит `.offset(x:)` и `DragGesture`. SF Symbols, обозначающие направление навигации, используют семантические варианты (`chevron.backward`/`.forward`), которые auto-mirror.
 - Внутри обёрток — `scripts/_l10n.py`. Для нестандартной мутации расширяйте Python-модуль, не байпасьте через ручной edit.
 - В тестах/одноразовых проверках перенаправляйте каталог через env: `MYRADIO_CATALOG_PATH=/tmp/test.xcstrings ./scripts/add-l10n.sh ...`.
+
+## Code Search
+
+Use `semble search` to find code by describing what it does or naming a symbol/identifier, instead of grep:
+
+​```bash
+semble search "authentication flow" ./my-project
+semble search "save_pretrained" ./my-project
+semble search "save model to disk" ./my-project --top-k 10
+​```
+
+Use `semble find-related` to discover code similar to a known location (pass `file_path` and `line` from a prior search result):
+
+​```bash
+semble find-related src/auth.py 42 ./my-project
+​```
+
+`path` defaults to the current directory when omitted; git URLs are accepted.
+
+If `semble` is not on `$PATH`, use `uvx --from "semble[mcp]" semble` in its place.
+
+## Workflow
+
+1. Start with `semble search` to find relevant chunks.
+2. Inspect full files only when the returned chunk is not enough context.
+3. Optionally use `semble find-related` with a promising result's `file_path` and `line` to discover related implementations.
+4. Use grep only when you need exhaustive literal matches or quick confirmation of an exact string.
