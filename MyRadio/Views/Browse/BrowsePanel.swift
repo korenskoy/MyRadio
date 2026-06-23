@@ -19,7 +19,10 @@ struct BrowsePanel: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        if state.isLoadingTab {
+                        // ponytail: Search owns its loading via SearchTab's .task; the
+                        // global spinner must NOT swap SearchTab out, or the unmount
+                        // cancels that task and the remount re-fires it → flicker loop.
+                        if state.isLoadingTab && state.activeTab != .search {
                             ProgressView()
                                 .frame(maxWidth: .infinity, minHeight: 100)
                         } else {

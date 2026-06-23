@@ -23,6 +23,11 @@ struct SearchBar: View {
                     .onChange(of: state.searchFocusRequest) { _, _ in
                         isFocused = true
                     }
+                    .onChange(of: state.searchQuery) { _, newValue in
+                        if !newValue.isEmpty && state.activeTab != .search {
+                            state.activeTab = .search
+                        }
+                    }
             }
             .frame(height: 32)
             .background(colors.bgInput)
