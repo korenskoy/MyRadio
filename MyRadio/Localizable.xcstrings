@@ -1545,6 +1545,66 @@
         }
       }
     },
+    "Auto-play the restored station if it was playing when you quit.": {
+      "comment": "Preferences → General toggle hint",
+      "extractionState": "manual",
+      "localizations": {
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çıxış edərkən səslənirdisə, bərpa edilən stansiyanı avtomatik səsləndir."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die wiederhergestellte Station automatisch abspielen, wenn sie beim Beenden lief."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-play the restored station if it was playing when you quit."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reproducir automáticamente la estación restaurada si estaba sonando al salir."
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اگر هنگام خروج در حال پخش بود، ایستگاه بازیابی‌شده به‌طور خودکار پخش شود."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lire automatiquement la station restaurée si elle était en cours de lecture à la fermeture."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終了時に再生していた場合、復元したステーションを自動再生します。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Автоматически включать восстановленную станцию, если она играла при выходе."
+          }
+        },
+        "zh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果退出时正在播放，则自动播放恢复的电台。"
+          }
+        }
+      }
+    },
     "Back": {
       "extractionState": "manual",
       "localizations": {
@@ -8009,6 +8069,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "恢复默认设置。收藏、历史和自定义电台保留。"
+          }
+        }
+      }
+    },
+    "Resume playback on launch": {
+      "comment": "Preferences → General toggle label",
+      "extractionState": "manual",
+      "localizations": {
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Başladıqda səsləndirməni davam etdir"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiedergabe beim Start fortsetzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume playback on launch"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudar la reproducción al iniciar"
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ادامه پخش هنگام راه‌اندازی"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre la lecture au démarrage"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "起動時に再生を再開"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Возобновлять воспроизведение при запуске"
+          }
+        },
+        "zh": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动时恢复播放"
           }
         }
       }

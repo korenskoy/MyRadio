@@ -221,6 +221,7 @@ struct Preferences: Codable {
     var language: AppLanguage?
     var launchAtLogin: Bool?
     var restoreLastStation: Bool?
+    var resumePlaybackOnLaunch: Bool?
     var confirmQuit: Bool?
     var lastStationUUID: String?
     var wasPlaying: Bool?

@@ -79,6 +79,16 @@ struct GeneralPane: View {
                         .labelsHidden()
                         .toggleStyle(.switch)
                 }
+                divider
+                row(
+                    label: "Resume playback on launch",
+                    hint: "Auto-play the restored station if it was playing when you quit."
+                ) {
+                    Toggle(isOn: $state.resumePlaybackOnLaunch) { EmptyView() }
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .disabled(!state.restoreLastStation)
+                }
             }
         }
     }

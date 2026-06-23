@@ -114,6 +114,14 @@ final class AppState {
             persistPreferences()
         }
     }
+    /// If on (and `restoreLastStation` is too), a station that was playing at the
+    /// last quit auto-resumes on launch instead of just being re-selected.
+    var resumePlaybackOnLaunch: Bool = true {
+        didSet {
+            guard !isHydrating else { return }
+            persistPreferences()
+        }
+    }
     var confirmQuit: Bool = true {
         didSet {
             guard !isHydrating else { return }
@@ -153,6 +161,7 @@ final class AppState {
             language: language,
             launchAtLogin: launchAtLogin,
             restoreLastStation: restoreLastStation,
+            resumePlaybackOnLaunch: resumePlaybackOnLaunch,
             confirmQuit: confirmQuit,
             lastStationUUID: lastStationUUID,
             wasPlaying: isPlaying
@@ -355,6 +364,7 @@ final class AppState {
                     if let language = prefs.language { self.language = language }
                     if let launch   = prefs.launchAtLogin      { self.launchAtLogin      = launch }
                     if let restore  = prefs.restoreLastStation { self.restoreLastStation = restore }
+                    if let resume   = prefs.resumePlaybackOnLaunch { self.resumePlaybackOnLaunch = resume }
                     if let confirm  = prefs.confirmQuit        { self.confirmQuit        = confirm }
                     self.lastStationUUID = prefs.lastStationUUID
                     resumePlayback = prefs.wasPlaying ?? false
@@ -384,7 +394,7 @@ final class AppState {
             if self.restoreLastStation,
                let uuid = self.lastStationUUID,
                let station = self.station(for: uuid) {
-                if resumePlayback {
+                if resumePlayback && self.resumePlaybackOnLaunch {
                     self.debugLog.append(.info, "Resuming last station: \(station.name)", source: "app.boot")
                     self.play(station)
                 } else {
