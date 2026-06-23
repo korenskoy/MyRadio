@@ -57,16 +57,10 @@ final class StreamPlayer: NSObject {
         latency = 0
     }
 
-    func togglePlayPause() {
-        guard let player else { return }
-        if isPlaying {
-            player.pause()
-            isPlaying = false
-        } else {
-            player.play()
-            isPlaying = true
-        }
-    }
+    /// True once a stream has been loaded into the player (i.e. `play(url:)` ran
+    /// and `stop()` hasn't since cleared it). Lets callers tell "paused" apart
+    /// from "never started", so play can start a fresh stream instead of no-op'ing.
+    var isLoaded: Bool { player != nil }
 
     // MARK: - Stream lifecycle
 

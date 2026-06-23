@@ -422,18 +422,20 @@ final class AppState {
         }
     }
 
+    /// Live radio has no meaningful pause: "stop" tears the stream down (frees the
+    /// connection, never resumes stale buffered audio), but keeps `currentStation`
+    /// so the next tap reconnects to the live edge. When nothing is loaded yet
+    /// (e.g. a station restored on launch but not auto-played), it starts playback.
     func togglePlayPause() {
-        let wasPlaying = streamPlayer.isPlaying
-        streamPlayer.togglePlayPause()
-        if wasPlaying {
-            // Pausing — bank the active segment so paused time isn't counted.
-            if let start = segmentStartTime {
-                accumulatedPlayTime += Date().timeIntervalSince(start)
-                segmentStartTime = nil
-            }
-        } else if currentStation != nil {
-            // Resuming — start a fresh active segment.
-            segmentStartTime = Date()
+        if streamPlayer.isLoaded {
+            recordHistoryForCurrentStation()
+            streamPlayer.stop()
+            sessionStartTime = nil
+            segmentStartTime = nil
+            accumulatedPlayTime = 0
+            persistPreferences()   // wasPlaying = false now
+        } else if let station = currentStation {
+            play(station)
         }
     }
 

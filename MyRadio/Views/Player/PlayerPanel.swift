@@ -393,7 +393,7 @@ private struct PlayButton: View {
         } label: {
             let bgColor = scheme == .dark ? Color(hex: 0xF1EFE8) : colors.fg
             let fgColor = scheme == .dark ? Color(hex: 0x161614) : colors.bgWindow
-            Image(systemName: state.isPlaying ? "pause.fill" : "play.fill")
+            Image(systemName: state.isPlaying ? "stop.fill" : "play.fill")
                 .font(.system(size: 22))
                 .foregroundStyle(fgColor)
                 .frame(width: AppLayout.playButtonSize, height: AppLayout.playButtonSize)
