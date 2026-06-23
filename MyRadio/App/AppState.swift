@@ -154,7 +154,8 @@ final class AppState {
             launchAtLogin: launchAtLogin,
             restoreLastStation: restoreLastStation,
             confirmQuit: confirmQuit,
-            lastStationUUID: lastStationUUID
+            lastStationUUID: lastStationUUID,
+            wasPlaying: isPlaying
         )
     }
 
@@ -344,6 +345,7 @@ final class AppState {
             self.cache = StationCache(api: api, log: self.debugLog)
 
             self.isHydrating = true
+            var resumePlayback = false
             do {
                 if let prefs = try await self.persistence.loadPreferences() {
                     self.streamPlayer.volume = prefs.volume
@@ -355,6 +357,7 @@ final class AppState {
                     if let restore  = prefs.restoreLastStation { self.restoreLastStation = restore }
                     if let confirm  = prefs.confirmQuit        { self.confirmQuit        = confirm }
                     self.lastStationUUID = prefs.lastStationUUID
+                    resumePlayback = prefs.wasPlaying ?? false
                 }
             } catch {
                 self.debugLog.append(.error, "Preferences load failed (archived, using defaults): \(error.localizedDescription)", source: "app.boot")
@@ -381,8 +384,13 @@ final class AppState {
             if self.restoreLastStation,
                let uuid = self.lastStationUUID,
                let station = self.station(for: uuid) {
-                self.debugLog.append(.info, "Restoring last station: \(station.name)", source: "app.boot")
-                self.currentStation = station
+                if resumePlayback {
+                    self.debugLog.append(.info, "Resuming last station: \(station.name)", source: "app.boot")
+                    self.play(station)
+                } else {
+                    self.debugLog.append(.info, "Restoring last station: \(station.name)", source: "app.boot")
+                    self.currentStation = station
+                }
             }
         }
     }

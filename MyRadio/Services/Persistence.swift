@@ -223,6 +223,7 @@ struct Preferences: Codable {
     var restoreLastStation: Bool?
     var confirmQuit: Bool?
     var lastStationUUID: String?
+    var wasPlaying: Bool?
 }
 
 extension AppTheme: Codable {}
