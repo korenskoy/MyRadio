@@ -22,7 +22,9 @@ struct MyRadioApp: App {
     }
 
     var body: some Scene {
-        WindowGroup(id: "main") {
+        // `Window` (not `WindowGroup`): a single unique window — removes the
+        // File ▸ New Window command and keeps the app strictly single-window.
+        Window("MyRadio", id: "main") {
             RootView()
                 .environment(state)
                 .environmentObject(state.updateChecker)
@@ -38,7 +40,7 @@ struct MyRadioApp: App {
 
         // DevTools intentionally pinned to LTR — it's developer tooling kept in
         // English regardless of the user's chosen language (see DebugTab.label).
-        WindowGroup(id: "devtools") {
+        Window("DevTools", id: "devtools") {
             DevToolsWindowRoot()
                 .environment(state)
                 .environment(\.layoutDirection, .leftToRight)
@@ -74,6 +76,8 @@ private struct AppShortcuts: Commands {
             Divider()
             Button("Sleep Timer…") { state.showSleepTimer = true }
                 .keyboardShortcut(".", modifiers: .command)
+        }
+        CommandGroup(after: .newItem) {
             Button("Add Custom Station…") { state.showAddStation = true }
                 .keyboardShortcut("n", modifiers: .command)
         }
@@ -109,6 +113,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
+        // Single-window app: kill macOS window tabbing so the View menu drops
+        // "Show Tab Bar" / "Show All Tabs" (and Merge/Move Tab items).
+        NSWindow.allowsAutomaticWindowTabbing = false
 
         guard let window = NSApp.windows.first else { return }
         mainWindow = window
