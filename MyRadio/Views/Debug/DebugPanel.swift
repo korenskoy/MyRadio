@@ -69,7 +69,6 @@ struct DebugPanel: View {
         case .logs:    return state.debugLog.entries.count
         case .network: return NetworkActivityLog.shared.records.isEmpty ? nil : NetworkActivityLog.shared.records.count
         case .stream:  return nil
-        case .icy:     return state.streamPlayer.icyMetadata.isEmpty ? nil : state.streamPlayer.icyMetadata.count
         case .servers: return state.servers.isEmpty ? nil : state.servers.count
         }
     }
@@ -132,7 +131,6 @@ struct DebugPanel: View {
         case .logs:    LogsTabView()
         case .network: NetworkTabView()
         case .stream:  StreamTabView()
-        case .icy:     ICYTabView()
         case .servers: ServersTabView()
         }
     }
@@ -422,7 +420,7 @@ private struct NetworkTabView: View {
 
     private var netHeader: some View {
         HStack(spacing: 0) {
-            headerCell("Time",   width: 70)
+            headerCell("Time",   width: 88)
             headerCell("Method", width: 50)
             headerCell("Status",   width: 60)
             headerCell("URL",      width: nil)
@@ -457,7 +455,7 @@ private struct NetworkTabView: View {
             Text(rec.time)
                 .font(.system(size: 10.5, design: .monospaced))
                 .foregroundStyle(colors.fgDebug2)
-                .frame(width: 70, alignment: .leading)
+                .frame(width: 88, alignment: .leading)
 
             Text(rec.method)
                 .font(.system(size: 10.5, weight: .bold, design: .monospaced))
@@ -519,6 +517,7 @@ private struct StreamTabView: View {
         let station = state.currentStation
 
         ScrollView {
+            VStack(spacing: 0) {
             LazyVGrid(columns: columns, spacing: 12) {
                 statCard(title: "Bitrate", value: player.currentBitrate > 0 ? String(format: "%.0f", player.currentBitrate) : (station?.bitrateFormatted ?? "—"), unit: player.currentBitrate > 0 ? "kbps" : nil)
                 statCard(title: "Codec", value: station?.codec?.uppercased() ?? "—")
@@ -530,7 +529,57 @@ private struct StreamTabView: View {
                 urlCard(title: "Stream URL", url: station?.urlResolved ?? station?.url ?? "—")
             }
             .padding(12)
+
+            icySection
+            }
         }
+    }
+
+    private var icySection: some View {
+        let meta = state.streamPlayer.icyMetadata
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Text("ICY metadata")
+                    .foregroundStyle(colors.fgDebug)
+                Text("·")
+                    .foregroundStyle(colors.fgDebug2)
+                Text(meta.isEmpty ? "No stream active" : "\(meta.count) fields")
+                    .foregroundStyle(colors.fgDebug2)
+            }
+            .font(.system(size: 10, weight: .medium, design: .monospaced))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider().overlay(colors.borderDebug)
+
+            if meta.isEmpty {
+                Text("Start playing a station to see ICY metadata")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(colors.fgDebug2)
+                    .frame(maxWidth: .infinity, minHeight: 80)
+            } else {
+                ForEach(meta.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                    HStack(spacing: 0) {
+                        Text(key)
+                            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                            .foregroundStyle(colors.statusInfo)
+                            .frame(width: 140, alignment: .leading)
+
+                        Text(value)
+                            .font(.system(size: 10.5, design: .monospaced))
+                            .foregroundStyle(colors.fgDebug)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .overlay(alignment: .bottom) {
+                        Rectangle().fill(colors.borderDebug).frame(height: 0.5)
+                    }
+                }
+            }
+        }
+        .background(colors.bgDebugRow, in: RoundedRectangle(cornerRadius: 6))
+        .padding(12)
     }
 
     private func statCard(title: String, value: String, unit: String? = nil, detail: String? = nil) -> some View {
@@ -622,63 +671,6 @@ private struct StreamTabView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(colors.bgDebugRow, in: RoundedRectangle(cornerRadius: 6))
-    }
-}
-
-// MARK: - ICY metadata tab (real data from StreamPlayer)
-
-private struct ICYTabView: View {
-    @Environment(AppState.self) private var state
-    @Environment(\.appColors) private var colors
-
-    var body: some View {
-        let meta = state.streamPlayer.icyMetadata
-
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 6) {
-                    Text("ICY metadata")
-                        .foregroundStyle(colors.fgDebug)
-                    Text("·")
-                        .foregroundStyle(colors.fgDebug2)
-                    Text(meta.isEmpty ? "No stream active" : "\(meta.count) fields")
-                        .foregroundStyle(colors.fgDebug2)
-                }
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-
-                Divider().overlay(colors.borderDebug)
-
-                if meta.isEmpty {
-                    Text("Start playing a station to see ICY metadata")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(colors.fgDebug2)
-                        .frame(maxWidth: .infinity, minHeight: 80)
-                } else {
-                    ForEach(meta.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
-                        HStack(spacing: 0) {
-                            Text(key)
-                                .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                                .foregroundStyle(colors.statusInfo)
-                                .frame(width: 140, alignment: .leading)
-
-                            Text(value)
-                                .font(.system(size: 10.5, design: .monospaced))
-                                .foregroundStyle(colors.fgDebug)
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .overlay(alignment: .bottom) {
-                            Rectangle().fill(colors.borderDebug).frame(height: 0.5)
-                        }
-                    }
-                }
-            }
-            .background(colors.bgDebugRow, in: RoundedRectangle(cornerRadius: 6))
-            .padding(12)
-        }
     }
 }
 

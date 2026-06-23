@@ -1,5 +1,5 @@
 MARKETING_VERSION = 1.2.2
-CURRENT_PROJECT_VERSION = 24
+CURRENT_PROJECT_VERSION = 25
 
 // Xcode 16+ auto-generates Swift symbols (.localized accessors) from string-catalog
 // keys; case-insensitive collisions like "Add Station" / "Add station" trigger a

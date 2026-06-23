@@ -43,7 +43,6 @@ enum DebugTab: String, CaseIterable, Identifiable {
     case logs
     case network
     case stream
-    case icy      = "icy_metadata"
     case servers
 
     var id: String { rawValue }
@@ -54,7 +53,6 @@ enum DebugTab: String, CaseIterable, Identifiable {
         case .logs:    return "Logs"
         case .network: return "Network"
         case .stream:  return "Stream"
-        case .icy:     return "ICY metadata"
         case .servers: return "Servers"
         }
     }
